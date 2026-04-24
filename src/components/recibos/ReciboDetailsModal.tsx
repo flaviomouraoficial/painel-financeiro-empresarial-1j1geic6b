@@ -61,6 +61,19 @@ export default function ReciboDetailsModal({ open, onOpenChange, recibo }: any) 
               </div>
             </div>
 
+            {recibo.arquivo_nf && (
+              <div className="pt-2">
+                <a
+                  href={`${import.meta.env.VITE_POCKETBASE_URL}/api/files/recibos/${recibo.id}/${recibo.arquivo_nf}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 hover:underline text-sm font-medium flex items-center gap-1"
+                >
+                  Ver Arquivo da Nota Fiscal Anexada
+                </a>
+              </div>
+            )}
+
             <div>
               <h4 className="font-semibold mb-2">Itens da Despesa</h4>
               <div className="border rounded-md">

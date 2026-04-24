@@ -28,7 +28,18 @@ import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { ItemsEditor } from './ItemsEditor'
 import { NovoClienteModal } from './NovoClienteModal'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess }: any) {
   const { user } = useAuth()
@@ -38,6 +49,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const [contas, setContas] = useState<any[]>([])
   const [cartoes, setCartoes] = useState<any[]>([])
   const [showNovoCliente, setShowNovoCliente] = useState(false)
+  const [openClientCombo, setOpenClientCombo] = useState(false)
 
   const [form, setForm] = useState<any>({
     numero_recibo: '',
@@ -50,6 +62,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
     conta_bancaria_id: '',
     cartao_credito_id: '',
     status: 'pendente',
+    arquivo_nf: null,
   })
   const [itens, setItens] = useState<any[]>([
     { id: '1', descricao: '', quantidade: 1, valor_unitario: 0 },
@@ -64,16 +77,24 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
         ...recibo,
         data_criacao: recibo.data_criacao.split(' ')[0],
         data_nf: recibo.data_nf.split(' ')[0],
+        arquivo_nf: null, // Don't try to load existing file into input
       })
       setItens(await getReciboItens(recibo.id))
     } else {
       const num = await generateNumeroRecibo(user.empresa_id)
-      setForm((f) => ({
+      setForm((f: any) => ({
         ...f,
         numero_recibo: num,
         status: 'pendente',
         valor_nf: 0,
         cliente_id: '',
+        numero_nf: '',
+        descricao_nf: '',
+        conta_bancaria_id: '',
+        cartao_credito_id: '',
+        arquivo_nf: null,
+        data_criacao: new Date().toISOString().split('T')[0],
+        data_nf: new Date().toISOString().split('T')[0],
       }))
       setItens([{ id: '1', descricao: '', quantidade: 1, valor_unitario: 0 }])
     }
@@ -85,13 +106,23 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const subtotal = itens.reduce((a, b) => a + b.quantidade * b.valor_unitario, 0)
   const diff = form.valor_nf - subtotal
   const c = clientes.find((x) => x.id === form.cliente_id)
+  const selectedConta = contas.find((x) => x.id === form.conta_bancaria_id)
 
   const handleSave = async () => {
     if (!form.cliente_id) return toast({ title: 'Selecione um cliente', variant: 'destructive' })
-    if (!form.conta_bancaria_id)
-      return toast({ title: 'Selecione uma conta bancária', variant: 'destructive' })
+    if (!form.numero_nf) return toast({ title: 'Informe o número da NF', variant: 'destructive' })
+    if (form.valor_nf <= 0)
+      return toast({ title: 'Informe um valor válido para a NF', variant: 'destructive' })
     if (itens.length === 0)
       return toast({ title: 'Adicione pelo menos um item', variant: 'destructive' })
+    if (itens.some((i) => !i.descricao || i.valor_unitario <= 0))
+      return toast({
+        title: 'Preencha corretamente a descrição e valor unitário dos itens',
+        variant: 'destructive',
+      })
+    if (!form.conta_bancaria_id)
+      return toast({ title: 'Selecione uma conta bancária', variant: 'destructive' })
+
     setLoading(true)
     try {
       const payload = {
@@ -120,129 +151,236 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
           </DialogHeader>
           <ScrollArea className="max-h-[75vh] px-6 py-4">
             <div className="space-y-8">
-              <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-1 md:col-span-2">
-                  <div className="flex justify-between items-center">
-                    <Label>Cliente</Label>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0"
-                      onClick={() => setShowNovoCliente(true)}
-                    >
-                      Criar novo cliente
-                    </Button>
+              {/* Section 1: Dados do Cliente */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">1. Dados do Cliente</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label>Cliente *</Label>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={() => setShowNovoCliente(true)}
+                      >
+                        Criar novo cliente
+                      </Button>
+                    </div>
+                    <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openClientCombo}
+                          className="w-full justify-between font-normal"
+                        >
+                          {form.cliente_id
+                            ? clientes.find((cli) => cli.id === form.cliente_id)?.nome
+                            : 'Selecione um cliente...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar cliente..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {clientes.map((cli) => (
+                                <CommandItem
+                                  key={cli.id}
+                                  value={cli.nome}
+                                  onSelect={() => {
+                                    setForm({ ...form, cliente_id: cli.id })
+                                    setOpenClientCombo(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4',
+                                      form.cliente_id === cli.id ? 'opacity-100' : 'opacity-0',
+                                    )}
+                                  />
+                                  {cli.nome}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <Select
-                    value={form.cliente_id}
-                    onValueChange={(v) => setForm({ ...form, cliente_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Data Criação</Label>
-                  <Input
-                    type="date"
-                    value={form.data_criacao}
-                    onChange={(e) => setForm({ ...form, data_criacao: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Número NF</Label>
-                  <Input
-                    value={form.numero_nf}
-                    onChange={(e) => setForm({ ...form, numero_nf: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Data NF</Label>
-                  <Input
-                    type="date"
-                    value={form.data_nf}
-                    onChange={(e) => setForm({ ...form, data_nf: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Valor NF</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={form.valor_nf}
-                    onChange={(e) => setForm({ ...form, valor_nf: Number(e.target.value) })}
-                  />
+
+                  {c && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-3 rounded-lg border">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Nome/Razão Social</Label>
+                        <p className="text-sm font-medium">{c.nome}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">CPF/CNPJ</Label>
+                        <p className="text-sm font-medium">{c.cpf_cnpj || '-'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">E-mail</Label>
+                        <p className="text-sm font-medium">{c.email || '-'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Telefone</Label>
+                        <p className="text-sm font-medium">{c.telefone || '-'}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
 
-              <ItemsEditor itens={itens} setItens={setItens} />
-
-              <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Conta Bancária</Label>
-                  <Select
-                    value={form.conta_bancaria_id}
-                    onValueChange={(v) => setForm({ ...form, conta_bancaria_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contas.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.banco} - {b.agencia}/{b.numero_conta}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Cartão de Crédito (Opcional)</Label>
-                  <Select
-                    value={form.cartao_credito_id}
-                    onValueChange={(v) => setForm({ ...form, cartao_credito_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nenhum" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
-                      {cartoes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.banco} - {c.numero_ultimos_digitos}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Section 2: Dados da Nota Fiscal */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">2. Dados da Nota Fiscal</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Número da Nota Fiscal *</Label>
+                    <Input
+                      value={form.numero_nf}
+                      onChange={(e) => setForm({ ...form, numero_nf: e.target.value })}
+                      placeholder="Ex: 12345"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data da Nota Fiscal *</Label>
+                    <Input
+                      type="date"
+                      value={form.data_nf}
+                      onChange={(e) => setForm({ ...form, data_nf: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Descrição (Opcional)</Label>
+                    <Input
+                      value={form.descricao_nf || ''}
+                      onChange={(e) => setForm({ ...form, descricao_nf: e.target.value })}
+                      placeholder="Descrição do serviço/produto"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Valor Total da NF (R$) *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.valor_nf}
+                      onChange={(e) => setForm({ ...form, valor_nf: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Arquivo da NF (Opcional)</Label>
+                    <Input
+                      type="file"
+                      onChange={(e) =>
+                        setForm({ ...form, arquivo_nf: e.target.files?.[0] || null })
+                      }
+                      accept="image/*,.pdf"
+                    />
+                  </div>
                 </div>
               </section>
 
-              <div className="bg-muted/50 p-4 rounded-xl border space-y-2">
-                <h4 className="font-semibold text-sm">Resumo</h4>
-                <div className="text-sm grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Número:</span>{' '}
-                  <span className="font-medium">{form.numero_recibo}</span>
-                  <span className="text-muted-foreground">Cliente:</span>{' '}
-                  <span className="font-medium">{c?.nome || '-'}</span>
-                  <span className="text-muted-foreground">Total NF:</span>{' '}
-                  <span className="font-medium">{formatCurrency(form.valor_nf)}</span>
-                  <span className="text-muted-foreground">Subtotal Itens:</span>{' '}
-                  <span className="font-medium">{formatCurrency(subtotal)}</span>
+              {/* Section 3: Itens de Despesa */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">3. Itens de Despesa</h3>
+                <ItemsEditor itens={itens} setItens={setItens} />
+              </section>
+
+              {/* Section 4: Dados Bancários */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">
+                  4. Dados Bancários para Reembolso
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Conta Bancária (Destino) *</Label>
+                    <Select
+                      value={form.conta_bancaria_id}
+                      onValueChange={(v) => setForm({ ...form, conta_bancaria_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contas.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.banco} - {b.agencia}/{b.numero_conta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cartão de Crédito (Opcional)</Label>
+                    <Select
+                      value={form.cartao_credito_id}
+                      onValueChange={(v) => setForm({ ...form, cartao_credito_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Nenhum" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {cartoes.map((car) => (
+                          <SelectItem key={car.id} value={car.id}>
+                            {car.banco} - {car.numero_ultimos_digitos}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                {diff !== 0 && (
-                  <p className="text-xs text-orange-500 mt-2 font-medium">
-                    Aviso: A diferença entre o total da NF e os itens é de {formatCurrency(diff)}
-                  </p>
-                )}
-              </div>
+              </section>
+
+              {/* Section 5: Resumo do Recibo */}
+              <section className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">5. Resumo do Recibo</h3>
+                <div className="bg-muted/50 p-4 rounded-xl border space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Número Gerado</span>
+                      <span className="font-semibold">{form.numero_recibo}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Data Atual</span>
+                      <span className="font-medium">{formatDate(form.data_criacao)}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-xs">
+                        Cliente Selecionado
+                      </span>
+                      <span className="font-medium truncate block">{c?.nome || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Total NF</span>
+                      <span className="font-medium">{formatCurrency(form.valor_nf)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-xs">Subtotal Itens</span>
+                      <span className="font-medium">{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-xs">Conta Destino</span>
+                      <span className="font-medium truncate block">
+                        {selectedConta
+                          ? `${selectedConta.banco} - ${selectedConta.agencia}/${selectedConta.numero_conta}`
+                          : '-'}
+                      </span>
+                    </div>
+                  </div>
+                  {diff !== 0 && (
+                    <div className="bg-orange-50 text-orange-600 p-2 rounded text-xs font-medium border border-orange-200">
+                      Atenção: o valor total de itens ({formatCurrency(subtotal)}) é diferente do
+                      valor da nota fiscal ({formatCurrency(form.valor_nf)})
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
           </ScrollArea>
           <DialogFooter className="p-6 border-t bg-background">
@@ -258,9 +396,9 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
       <NovoClienteModal
         open={showNovoCliente}
         onOpenChange={setShowNovoCliente}
-        onSuccess={(c: any) => {
-          setClientes([...clientes, c])
-          setForm({ ...form, cliente_id: c.id })
+        onSuccess={(cli: any) => {
+          setClientes([...clientes, cli])
+          setForm({ ...form, cliente_id: cli.id })
         }}
       />
     </>

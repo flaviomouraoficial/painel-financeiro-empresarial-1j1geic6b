@@ -19,7 +19,11 @@ export const generateNumeroRecibo = async (empresaId: string) => {
 }
 
 export const createRecibo = async (data: any, itens: any[]) => {
-  const recibo = await pb.collection('recibos').create(data)
+  const formData = new FormData()
+  Object.keys(data).forEach((k) => {
+    if (data[k] !== undefined && data[k] !== null) formData.append(k, data[k])
+  })
+  const recibo = await pb.collection('recibos').create(formData)
   for (const item of itens) {
     await pb.collection('itens_recibos').create({
       ...item,
@@ -32,7 +36,18 @@ export const createRecibo = async (data: any, itens: any[]) => {
 }
 
 export const updateRecibo = async (id: string, data: any, itens: any[]) => {
-  const recibo = await pb.collection('recibos').update(id, data)
+  const formData = new FormData()
+  Object.keys(data).forEach((k) => {
+    if (data[k] !== undefined && data[k] !== null && k !== 'arquivo_nf') {
+      formData.append(k, data[k])
+    }
+  })
+  if (data.arquivo_nf instanceof File) {
+    formData.append('arquivo_nf', data.arquivo_nf)
+  } else if (data.arquivo_nf === null) {
+    formData.append('arquivo_nf', '')
+  }
+  const recibo = await pb.collection('recibos').update(id, formData)
   const oldItens = await getReciboItens(id)
   for (const old of oldItens) await pb.collection('itens_recibos').delete(old.id)
   for (const item of itens) {

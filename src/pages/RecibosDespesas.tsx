@@ -25,16 +25,19 @@ export default function RecibosDespesas() {
   const { toast } = useToast()
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [selected, setSelected] = useState<any>(null)
 
   const load = async () => {
+    setLoading(true)
+    setError(false)
     try {
       setData(await getRecibos())
     } catch {
-      /* intentionally ignored */
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -95,6 +98,16 @@ export default function RecibosDespesas() {
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center p-16 text-center">
+            <h3 className="text-lg font-semibold text-destructive">Erro ao carregar recibos</h3>
+            <p className="text-sm text-muted-foreground mt-1 mb-6">
+              Não foi possível carregar a lista de recibos.
+            </p>
+            <Button onClick={load} variant="outline">
+              Tentar novamente
+            </Button>
           </div>
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-16 text-center">
