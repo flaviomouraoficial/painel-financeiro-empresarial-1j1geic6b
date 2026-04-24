@@ -69,34 +69,44 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   ])
 
   const loadData = async () => {
-    setClientes(await pb.collection('clientes').getFullList({ sort: 'nome' }))
-    setContas(await pb.collection('contas_bancarias').getFullList())
-    setCartoes(await pb.collection('cartoes_credito').getFullList())
-    if (recibo) {
-      setForm({
-        ...recibo,
-        data_criacao: recibo.data_criacao.split(' ')[0],
-        data_nf: recibo.data_nf.split(' ')[0],
-        arquivo_nf: null, // Don't try to load existing file into input
-      })
-      setItens(await getReciboItens(recibo.id))
-    } else {
-      const num = await generateNumeroRecibo(user.empresa_id)
-      setForm((f: any) => ({
-        ...f,
-        numero_recibo: num,
-        status: 'pendente',
-        valor_nf: 0,
-        cliente_id: '',
-        numero_nf: '',
-        descricao_nf: '',
-        conta_bancaria_id: '',
-        cartao_credito_id: '',
-        arquivo_nf: null,
-        data_criacao: new Date().toISOString().split('T')[0],
-        data_nf: new Date().toISOString().split('T')[0],
-      }))
-      setItens([{ id: '1', descricao: '', quantidade: 1, valor_unitario: 0 }])
+    try {
+      const [cliRes, contRes, cartRes] = await Promise.all([
+        pb.collection('clientes').getFullList({ sort: 'nome' }),
+        pb.collection('contas_bancarias').getFullList(),
+        pb.collection('cartoes_credito').getFullList(),
+      ])
+      setClientes(cliRes)
+      setContas(contRes)
+      setCartoes(cartRes)
+
+      if (recibo) {
+        setForm({
+          ...recibo,
+          data_criacao: recibo.data_criacao.split(' ')[0],
+          data_nf: recibo.data_nf.split(' ')[0],
+          arquivo_nf: null, // Don't try to load existing file into input
+        })
+        setItens(await getReciboItens(recibo.id))
+      } else {
+        const num = await generateNumeroRecibo(user.empresa_id)
+        setForm((f: any) => ({
+          ...f,
+          numero_recibo: num,
+          status: 'pendente',
+          valor_nf: 0,
+          cliente_id: '',
+          numero_nf: '',
+          descricao_nf: '',
+          conta_bancaria_id: '',
+          cartao_credito_id: '',
+          arquivo_nf: null,
+          data_criacao: new Date().toISOString().split('T')[0],
+          data_nf: new Date().toISOString().split('T')[0],
+        }))
+        setItens([{ id: '1', descricao: '', quantidade: 1, valor_unitario: 0 }])
+      }
+    } catch (e) {
+      toast({ title: 'Erro ao carregar dados', variant: 'destructive', duration: 5000 })
     }
   }
   useEffect(() => {
@@ -109,19 +119,30 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const selectedConta = contas.find((x) => x.id === form.conta_bancaria_id)
 
   const handleSave = async () => {
-    if (!form.cliente_id) return toast({ title: 'Selecione um cliente', variant: 'destructive' })
-    if (!form.numero_nf) return toast({ title: 'Informe o número da NF', variant: 'destructive' })
+    if (!form.cliente_id)
+      return toast({ title: 'Selecione um cliente', variant: 'destructive', duration: 5000 })
+    if (!form.numero_nf)
+      return toast({ title: 'Informe o número da NF', variant: 'destructive', duration: 5000 })
     if (form.valor_nf <= 0)
-      return toast({ title: 'Informe um valor válido para a NF', variant: 'destructive' })
+      return toast({
+        title: 'Informe um valor válido para a NF',
+        variant: 'destructive',
+        duration: 5000,
+      })
     if (itens.length === 0)
-      return toast({ title: 'Adicione pelo menos um item', variant: 'destructive' })
+      return toast({ title: 'Adicione pelo menos um item', variant: 'destructive', duration: 5000 })
     if (itens.some((i) => !i.descricao || i.valor_unitario <= 0))
       return toast({
         title: 'Preencha corretamente a descrição e valor unitário dos itens',
         variant: 'destructive',
+        duration: 5000,
       })
     if (!form.conta_bancaria_id)
-      return toast({ title: 'Selecione uma conta bancária', variant: 'destructive' })
+      return toast({
+        title: 'Selecione uma conta bancária',
+        variant: 'destructive',
+        duration: 5000,
+      })
 
     setLoading(true)
     try {
@@ -132,11 +153,15 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
       }
       if (recibo) await updateRecibo(recibo.id, payload, itens)
       else await createRecibo(payload, itens)
-      toast({ title: 'Recibo salvo com sucesso' })
+      toast({ title: 'Recibo salvo com sucesso', duration: 3000 })
       onSuccess()
       onOpenChange(false)
     } catch (e) {
-      toast({ title: 'Erro ao salvar recibo. Tente novamente.', variant: 'destructive' })
+      toast({
+        title: 'Erro ao salvar recibo. Tente novamente.',
+        variant: 'destructive',
+        duration: 5000,
+      })
     } finally {
       setLoading(false)
     }

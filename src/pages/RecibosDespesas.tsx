@@ -52,21 +52,21 @@ export default function RecibosDespesas() {
     if (!selected) return
     try {
       await deleteRecibo(selected.id)
-      toast({ title: 'Recibo deletado com sucesso' })
+      toast({ title: 'Recibo deletado com sucesso', duration: 3000 })
       load()
     } catch (e) {
-      toast({ title: 'Erro ao deletar', variant: 'destructive' })
+      toast({ title: 'Erro ao deletar', variant: 'destructive', duration: 5000 })
     }
     setDeleteOpen(false)
   }
 
   const handlePdf = async (recibo: any) => {
     try {
-      toast({ title: 'Gerando PDF...' })
+      toast({ title: 'Gerando PDF...', duration: 3000 })
       const itens = await getReciboItens(recibo.id)
       await generateReciboPDF(recibo, itens)
     } catch (e) {
-      toast({ title: 'Erro ao gerar PDF', variant: 'destructive' })
+      toast({ title: 'Erro ao gerar PDF', variant: 'destructive', duration: 5000 })
     }
   }
 

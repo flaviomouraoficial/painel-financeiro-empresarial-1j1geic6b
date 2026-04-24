@@ -21,6 +21,12 @@ export async function generateReciboPDF(recibo: any, itens: any[]) {
       <p><strong>Descrição:</strong> ${recibo.descricao_nf || '-'}</p>
       <p><strong>Valor Total NF:</strong> ${formatCurrency(recibo.valor_nf)}</p>
     </div>
+    <div style="margin-bottom: 20px;">
+      <h3>Dados Bancários para Reembolso</h3>
+      <p><strong>Banco:</strong> ${recibo.expand?.conta_bancaria_id?.banco || '-'}</p>
+      <p><strong>Agência/Conta:</strong> ${recibo.expand?.conta_bancaria_id?.agencia || '-'} / ${recibo.expand?.conta_bancaria_id?.numero_conta || '-'}</p>
+      ${recibo.expand?.cartao_credito_id ? `<p><strong>Cartão de Crédito:</strong> ${recibo.expand.cartao_credito_id.banco} (Final ${recibo.expand.cartao_credito_id.numero_ultimos_digitos || '-'})</p>` : ''}
+    </div>
     <h3>Itens de Despesa</h3>
     <table class="pdf-table">
       <thead>

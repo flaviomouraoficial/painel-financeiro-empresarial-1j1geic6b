@@ -21,7 +21,7 @@ export function NovoClienteModal({ open, onOpenChange, onSuccess }: any) {
   const [loading, setLoading] = useState(false)
 
   const save = async () => {
-    if (!nome) return toast({ title: 'Nome obrigatório', variant: 'destructive' })
+    if (!nome) return toast({ title: 'Nome obrigatório', variant: 'destructive', duration: 5000 })
     setLoading(true)
     try {
       const res = await pb.collection('clientes').create({
@@ -30,13 +30,13 @@ export function NovoClienteModal({ open, onOpenChange, onSuccess }: any) {
         empresa_id: user.empresa_id,
         tipo: cpf.length > 14 ? 'pj' : 'pf',
       })
-      toast({ title: 'Cliente criado com sucesso' })
+      toast({ title: 'Cliente criado com sucesso', duration: 3000 })
       onSuccess(res)
       onOpenChange(false)
       setNome('')
       setCpf('')
     } catch (e) {
-      toast({ title: 'Erro ao criar cliente', variant: 'destructive' })
+      toast({ title: 'Erro ao criar cliente', variant: 'destructive', duration: 5000 })
     } finally {
       setLoading(false)
     }
