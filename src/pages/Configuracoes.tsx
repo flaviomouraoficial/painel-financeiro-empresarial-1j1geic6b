@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Building2, User, Wallet } from 'lucide-react'
+import { Save, Building2, User, Wallet, Lock, Loader2 } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -24,6 +24,13 @@ export default function Configuracoes() {
   const [empresa, setEmpresa] = useState<any>({})
   const [perfil, setPerfil] = useState<any>({})
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    password: '',
+    passwordConfirm: '',
+  })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -67,6 +74,50 @@ export default function Configuracoes() {
         description: 'Não foi possível salvar o perfil.',
         variant: 'destructive',
       })
+    }
+  }
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    if (passwordData.password !== passwordData.passwordConfirm) {
+      return toast({
+        title: 'Erro',
+        description: 'As senhas não conferem.',
+        variant: 'destructive',
+      })
+    }
+    if (passwordData.password.length < 8) {
+      return toast({
+        title: 'Erro',
+        description: 'A nova senha deve ter no mínimo 8 caracteres.',
+        variant: 'destructive',
+      })
+    }
+
+    setIsChangingPassword(true)
+    try {
+      await pb.collection('users').update(user.id, {
+        oldPassword: passwordData.oldPassword,
+        password: passwordData.password,
+        passwordConfirm: passwordData.passwordConfirm,
+        trocar_senha_proximo_acesso: false,
+      })
+      toast({
+        title: 'Sucesso',
+        description: 'Senha atualizada com sucesso',
+        className: 'bg-emerald-600 text-white border-none',
+      })
+      setPasswordData({ oldPassword: '', password: '', passwordConfirm: '' })
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao atualizar senha. Verifique sua senha atual.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsChangingPassword(false)
     }
   }
 
@@ -178,7 +229,7 @@ export default function Configuracoes() {
           )}
         </TabsContent>
 
-        <TabsContent value="perfil">
+        <TabsContent value="perfil" className="space-y-6">
           <Card className="mt-4 shadow-sm border-t-4 border-t-secondary">
             <form onSubmit={handleSavePerfil}>
               <CardHeader>
@@ -212,6 +263,78 @@ export default function Configuracoes() {
               <CardFooter className="bg-slate-50 dark:bg-slate-900 px-6 py-4 justify-end">
                 <Button type="submit">
                   <Save className="mr-2 h-4 w-4" /> Atualizar Perfil
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+
+          <Card className="shadow-sm border-t-4 border-t-[#268C83]">
+            <form onSubmit={handleUpdatePassword}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" /> Alterar Senha
+                </CardTitle>
+                <CardDescription>
+                  Mantenha sua conta segura atualizando sua senha regularmente.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 max-w-sm">
+                  <div className="space-y-2">
+                    <Label>
+                      Senha Atual <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="password"
+                      required
+                      value={passwordData.oldPassword}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, oldPassword: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Nova Senha <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={passwordData.password}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, password: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>
+                      Confirmar Nova Senha <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={passwordData.passwordConfirm}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, passwordConfirm: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-slate-50 dark:bg-slate-900 px-6 py-4 justify-end">
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword}
+                  className="bg-[#268C83] hover:bg-[#1f736b] h-[44px]"
+                >
+                  {isChangingPassword ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Atualizar Senha
                 </Button>
               </CardFooter>
             </form>

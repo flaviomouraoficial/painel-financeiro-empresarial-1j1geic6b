@@ -103,6 +103,7 @@ export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId 
       if (!values.id) {
         payload.password = values.password
         payload.passwordConfirm = values.passwordConfirm
+        payload.trocar_senha_proximo_acesso = true
         await pb.collection('users').create(payload)
         toast({
           description: 'Usuário criado com sucesso',
