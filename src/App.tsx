@@ -7,6 +7,7 @@ import Index from './pages/Index'
 import Cadastros from './pages/Cadastros'
 import Lancamentos from './pages/Lancamentos'
 import Contas from './pages/Contas'
+import ContasReceber from './pages/ContasReceber'
 import Relatorios from './pages/Relatorios'
 import RelatoriosDre from './pages/RelatoriosDre'
 import RelatoriosEbitda from './pages/RelatoriosEbitda'
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/dashboard" element={<Index />} />
             <Route path="/cadastros/:tipo" element={<Cadastros />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
+            <Route path="/financeiro/contas-receber" element={<ContasReceber />} />
             <Route path="/contas/:tipo" element={<Contas />} />
             <Route path="/recibos-despesas" element={<RecibosDespesas />} />
             <Route path="/relatorios" element={<Relatorios />} />

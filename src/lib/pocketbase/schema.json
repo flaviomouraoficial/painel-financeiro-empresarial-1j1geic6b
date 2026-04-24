@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T14:40:55.744Z",
+  "generatedAt": "2026-04-24T14:46:07.080Z",
   "collections": [
     {
       "name": "users",
@@ -1240,7 +1240,31 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["aberta", "parcial", "recebida", "vencida"]
+          "selectValues": ["pendente", "vencida", "recebida", "cancelada"]
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "forma_pagamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero_documento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -1393,6 +1417,13 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": []
