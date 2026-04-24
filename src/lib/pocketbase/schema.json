@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T14:13:37.732Z",
+  "generatedAt": "2026-04-24T14:29:38.206Z",
   "collections": [
     {
       "name": "users",
@@ -208,6 +208,59 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "AC",
+            "AL",
+            "AP",
+            "AM",
+            "BA",
+            "CE",
+            "DF",
+            "ES",
+            "GO",
+            "MA",
+            "MT",
+            "MS",
+            "MG",
+            "PA",
+            "PB",
+            "PR",
+            "PE",
+            "PI",
+            "RJ",
+            "RN",
+            "RS",
+            "RO",
+            "RR",
+            "SC",
+            "SP",
+            "SE",
+            "TO"
+          ]
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -277,6 +330,84 @@
         },
         {
           "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "AC",
+            "AL",
+            "AP",
+            "AM",
+            "BA",
+            "CE",
+            "DF",
+            "ES",
+            "GO",
+            "MA",
+            "MT",
+            "MS",
+            "MG",
+            "PA",
+            "PB",
+            "PR",
+            "PE",
+            "PI",
+            "RJ",
+            "RN",
+            "RS",
+            "RO",
+            "RR",
+            "SC",
+            "SP",
+            "SE",
+            "TO"
+          ]
+        },
+        {
+          "name": "cep",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "banco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "agencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conta",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_conta",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["corrente", "poupanca"]
+        },
+        {
+          "name": "observacoes",
           "type": "text",
           "required": false,
           "system": false
@@ -358,6 +489,31 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "sku",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estoque",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "unidade_medida",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fornecedor_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "fornecedores"
         }
       ],
       "indexes": []
@@ -442,6 +598,43 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "titular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf_cnpj_titular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_abertura",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "limite_credito",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": []
@@ -513,6 +706,38 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "titular",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_validade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conta_bancaria_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "contas_bancarias"
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": []
