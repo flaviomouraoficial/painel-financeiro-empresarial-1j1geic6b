@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T11:30:12.643Z",
+  "generatedAt": "2026-04-24T11:36:36.448Z",
   "collections": [
     {
       "name": "users",
@@ -707,8 +707,8 @@
       "name": "lancamentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
-        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id)",
+        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id)",
         "create": "(@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id",
         "update": "(@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id",
         "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
