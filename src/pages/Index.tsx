@@ -41,55 +41,25 @@ const chartConfig = {
   despesas: { label: 'Despesas', color: 'hsl(var(--chart-4))' }, // Red-ish
 } satisfies ChartConfig
 
-const recentTransactions = [
-  {
-    id: '1',
-    date: '2023-10-28',
-    desc: 'Consultoria Financeira ABC',
-    cat: 'Serviços',
-    value: 4500,
-    type: 'receita',
-  },
-  {
-    id: '2',
-    date: '2023-10-27',
-    desc: 'Licença Software CRM',
-    cat: 'Tecnologia',
-    value: 350,
-    type: 'despesa',
-  },
-  {
-    id: '3',
-    date: '2023-10-25',
-    desc: 'Auditoria Empresa XYZ',
-    cat: 'Serviços',
-    value: 8200,
-    type: 'receita',
-  },
-  {
-    id: '4',
-    date: '2023-10-24',
-    desc: 'Aluguel Escritório',
-    cat: 'Infraestrutura',
-    value: 2500,
-    type: 'despesa',
-  },
-  {
-    id: '5',
-    date: '2023-10-23',
-    desc: 'Material de Escritório',
-    cat: 'Suprimentos',
-    value: 120,
-    type: 'despesa',
-  },
-]
+import { listarLancamentos } from '@/services/lancamentos'
 
 export default function Index() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [opcoes, setOpcoes] = useState({ categorias: [], contas: [], cartoes: [] })
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([])
   const { toast } = useToast()
 
+  const loadData = async () => {
+    try {
+      const data = await listarLancamentos()
+      setRecentTransactions(data.slice(0, 5))
+    } catch (err: any) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
+    loadData()
     getOpcoes()
       .then(setOpcoes)
       .catch((err) => {
@@ -276,26 +246,26 @@ export default function Index() {
             <TableBody>
               {recentTransactions.map((t) => (
                 <TableRow key={t.id}>
-                  <TableCell className="font-medium">{formatDate(t.date)}</TableCell>
-                  <TableCell>{t.desc}</TableCell>
-                  <TableCell>{t.cat}</TableCell>
+                  <TableCell className="font-medium">{formatDate(t.data_lancamento)}</TableCell>
+                  <TableCell>{t.descricao}</TableCell>
+                  <TableCell>{t.expand?.categoria_id?.nome || '-'}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={t.type === 'receita' ? 'default' : 'destructive'}
+                      variant={t.tipo === 'receita' ? 'default' : 'destructive'}
                       className={
-                        t.type === 'receita'
+                        t.tipo === 'receita'
                           ? 'bg-[#e6f4ea] text-[hsl(142,71%,35%)] hover:bg-[#cce8d5] border-none'
                           : 'bg-[#ffe6e6] text-[hsl(0,84%,40%)] hover:bg-[#ffcccc] border-none'
                       }
                     >
-                      {t.type === 'receita' ? 'Receita' : 'Despesa'}
+                      {t.tipo === 'receita' ? 'Receita' : 'Despesa'}
                     </Badge>
                   </TableCell>
                   <TableCell
-                    className={`text-right font-semibold ${t.type === 'receita' ? 'text-[hsl(142,71%,40%)]' : 'text-[hsl(0,84%,50%)]'}`}
+                    className={`text-right font-semibold ${t.tipo === 'receita' ? 'text-[hsl(142,71%,40%)]' : 'text-[hsl(0,84%,50%)]'}`}
                   >
-                    {t.type === 'receita' ? '+' : '-'}
-                    {formatCurrency(t.value)}
+                    {t.tipo === 'receita' ? '+' : '-'}
+                    {formatCurrency(t.valor)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -318,6 +288,7 @@ export default function Index() {
               cartoes={opcoes.cartoes as any}
               onSuccess={() => {
                 setIsFormOpen(false)
+                loadData()
               }}
               onCancel={() => setIsFormOpen(false)}
             />

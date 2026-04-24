@@ -78,6 +78,15 @@ export function LancamentosForm({
   const valorNum = parseFloat(valorStr)
   const isValorInvalid = formData.valor !== '' && (isNaN(valorNum) || valorNum <= 0)
 
+  const isFormValid =
+    formData.tipo &&
+    formData.categoria_id &&
+    formData.descricao &&
+    formData.valor &&
+    formData.data_lancamento &&
+    formData.forma_pagamento &&
+    !isValorInvalid
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
@@ -128,7 +137,7 @@ export function LancamentosForm({
         toast({
           title: 'Sucesso',
           description: 'Lançamento editado com sucesso',
-          className: 'bg-[#268C83] text-white border-transparent',
+          className: 'bg-green-600 text-white border-transparent',
           duration: 3000,
         })
       } else {
@@ -136,7 +145,7 @@ export function LancamentosForm({
         toast({
           title: 'Sucesso',
           description: 'Lançamento criado com sucesso',
-          className: 'bg-[#268C83] text-white border-transparent',
+          className: 'bg-green-600 text-white border-transparent',
           duration: 3000,
         })
       }
@@ -344,8 +353,8 @@ export function LancamentosForm({
         </Button>
         <Button
           type="submit"
-          disabled={loading}
-          className="h-[44px] px-[20px] rounded-[8px] text-[14px] bg-[#268C83] hover:bg-[#1e736c] text-white border-transparent"
+          disabled={loading || isValorInvalid || (submitted && !isFormValid)}
+          className="h-[44px] px-[20px] rounded-[8px] text-[14px] bg-[#268C83] hover:bg-[#1e736c] text-white border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : 'Salvar'}
