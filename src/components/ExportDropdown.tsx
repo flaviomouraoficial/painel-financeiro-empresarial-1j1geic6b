@@ -8,11 +8,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+import { cn } from '@/lib/utils'
+
 interface ExportDropdownProps {
   onExportPdf?: () => Promise<void>
   onExportExcel?: () => Promise<void>
   onExportCsv?: () => Promise<void>
   disabled?: boolean
+  className?: string
 }
 
 export function ExportDropdown({
@@ -20,6 +23,7 @@ export function ExportDropdown({
   onExportExcel,
   onExportCsv,
   disabled,
+  className,
 }: ExportDropdownProps) {
   const [isExporting, setIsExporting] = useState(false)
 
@@ -36,7 +40,11 @@ export function ExportDropdown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={disabled || isExporting} className="h-[44px]">
+        <Button
+          variant="outline"
+          disabled={disabled || isExporting}
+          className={cn('h-[44px]', className)}
+        >
           {isExporting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (

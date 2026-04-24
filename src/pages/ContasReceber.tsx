@@ -16,6 +16,7 @@ import { ContasReceberSummary } from '@/components/financeiro/ContasReceberSumma
 import { ContasReceberFilter } from '@/components/financeiro/ContasReceberFilter'
 import { ContaReceberForm } from '@/components/financeiro/ContaReceberForm'
 import { ReceberModal } from '@/components/financeiro/ReceberModal'
+import { ExportDropdown } from '@/components/ExportDropdown'
 import {
   Dialog,
   DialogContent,
@@ -175,83 +176,137 @@ export default function ContasReceber() {
 
   const exportarPdf = async () => {
     if (filteredItems.length === 0) return
-    const { exportToPdf } = await import('@/lib/pdf-export')
+    try {
+      const { exportToPdf } = await import('@/lib/pdf-export')
 
-    const tableHtml = `
-      <table class="pdf-table">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Descrição</th>
-            <th style="text-align: right">Valor</th>
-            <th>Vencimento</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${filteredItems
-            .map(
-              (item) => `
+      const tableHtml = `
+        <table class="pdf-table">
+          <thead>
             <tr>
-              <td>${item.expand?.cliente_id?.nome || '-'}</td>
-              <td>${item.descricao || '-'}</td>
-              <td style="text-align: right">${formatBRL(item.valor_total)}</td>
-              <td>${formatD(item.data_vencimento)}</td>
-              <td>${item.status.toUpperCase()}</td>
+              <th>Cliente</th>
+              <th>Descrição</th>
+              <th style="text-align: right">Valor</th>
+              <th>Vencimento</th>
+              <th>Status</th>
             </tr>
-          `,
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `
+          </thead>
+          <tbody>
+            ${filteredItems
+              .map(
+                (item) => `
+              <tr>
+                <td>${item.expand?.cliente_id?.nome || '-'}</td>
+                <td>${item.descricao || '-'}</td>
+                <td style="text-align: right">${formatBRL(item.valor_total)}</td>
+                <td>${formatD(item.data_vencimento)}</td>
+                <td>${item.status.toUpperCase()}</td>
+              </tr>
+            `,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      `
 
-    await exportToPdf({
-      filename: `Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.pdf`,
-      title: 'Relatório de Contas a Receber',
-      period: `${filters.dataInicio ? formatD(filters.dataInicio) : 'Início'} a ${filters.dataFim ? formatD(filters.dataFim) : 'Fim'}`,
-      filters: `Status: ${filters.status} | Cliente: ${filters.cliente}`,
-      tableHtml,
-      orientation: 'landscape',
-    })
+      const dataInicioStr = filters.dataInicio
+        ? format(parseISO(filters.dataInicio), 'dd_MM_yyyy')
+        : 'Inicio'
+      const dataFimStr = filters.dataFim ? format(parseISO(filters.dataFim), 'dd_MM_yyyy') : 'Fim'
+      const fileName = `Contas_Receber_${dataInicioStr}_a_${dataFimStr}.pdf`
+
+      await exportToPdf({
+        filename: fileName,
+        title: 'Relatório de Contas a Receber',
+        period: `${filters.dataInicio ? formatD(filters.dataInicio) : 'Início'} a ${filters.dataFim ? formatD(filters.dataFim) : 'Fim'}`,
+        filters: `Status: ${filters.status} | Cliente: ${filters.cliente === 'Todos' ? 'Todos' : clientes.find((c) => c.id === filters.cliente)?.nome || filters.cliente}`,
+        tableHtml,
+        orientation: 'landscape',
+      })
+      toast({ title: 'PDF gerado com sucesso' })
+    } catch (error) {
+      toast({ title: 'Erro ao gerar PDF. Tente novamente.', variant: 'destructive' })
+    }
   }
 
   const exportarExcel = async () => {
     if (filteredItems.length === 0) return
-    const { exportToExcel } = await import('@/lib/export-utils')
+    try {
+      const { exportToExcel } = await import('@/lib/export-utils')
 
-    const data = [
-      ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
-      ...filteredItems.map((item) => [
-        item.expand?.cliente_id?.nome || '-',
-        item.descricao || '-',
-        item.valor_total,
-        formatD(item.data_vencimento),
-        item.status.toUpperCase(),
-      ]),
-    ]
+      const dados = [
+        ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+        ...filteredItems.map((item) => [
+          item.expand?.cliente_id?.nome || '-',
+          item.descricao || '-',
+          item.valor_total,
+          formatD(item.data_vencimento),
+          item.status.toUpperCase(),
+        ]),
+      ]
 
-    exportToExcel(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.xls`, [
-      { name: 'Contas a Receber', data },
-    ])
+      const totalPendente = filteredItems
+        .filter((i) => i.status === 'pendente')
+        .reduce((acc, i) => acc + i.valor_total, 0)
+      const totalVencido = filteredItems
+        .filter((i) => i.status === 'vencida')
+        .reduce((acc, i) => acc + i.valor_total, 0)
+      const totalRecebido = filteredItems
+        .filter((i) => i.status === 'recebida')
+        .reduce((acc, i) => acc + i.valor_total, 0)
+
+      const resumo = [
+        ['Métrica', 'Valor'],
+        ['Total Pendente', totalPendente],
+        ['Total Vencido', totalVencido],
+        ['Total Recebido', totalRecebido],
+        ['Total Geral', totalPendente + totalVencido + totalRecebido],
+      ]
+
+      const filtrosAplicados = [
+        ['Filtro', 'Valor Aplicado'],
+        ['Status', filters.status],
+        [
+          'Cliente',
+          filters.cliente === 'Todos'
+            ? 'Todos'
+            : clientes.find((c) => c.id === filters.cliente)?.nome || filters.cliente,
+        ],
+        ['Data Início', filters.dataInicio ? formatD(filters.dataInicio) : 'Não definido'],
+        ['Data Fim', filters.dataFim ? formatD(filters.dataFim) : 'Não definido'],
+      ]
+
+      exportToExcel(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.xlsx`, [
+        { name: 'Dados', data: dados },
+        { name: 'Resumo', data: resumo },
+        { name: 'Filtros', data: filtrosAplicados },
+      ])
+      toast({ title: 'Excel gerado com sucesso' })
+    } catch (error) {
+      toast({ title: 'Erro ao gerar Excel. Tente novamente.', variant: 'destructive' })
+    }
   }
 
   const exportarCsv = async () => {
     if (filteredItems.length === 0) return
-    const { exportToCsv } = await import('@/lib/export-utils')
+    try {
+      const { exportToCsv } = await import('@/lib/export-utils')
 
-    const data = [
-      ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
-      ...filteredItems.map((item) => [
-        item.expand?.cliente_id?.nome || '-',
-        item.descricao || '-',
-        item.valor_total,
-        formatD(item.data_vencimento),
-        item.status.toUpperCase(),
-      ]),
-    ]
+      const data = [
+        ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+        ...filteredItems.map((item) => [
+          item.expand?.cliente_id?.nome || '-',
+          item.descricao || '-',
+          item.valor_total,
+          formatD(item.data_vencimento),
+          item.status.toUpperCase(),
+        ]),
+      ]
 
-    exportToCsv(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.csv`, data)
+      exportToCsv(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.csv`, data)
+      toast({ title: 'CSV gerado com sucesso' })
+    } catch (error) {
+      toast({ title: 'Erro ao gerar CSV. Tente novamente.', variant: 'destructive' })
+    }
   }
 
   if (error)
@@ -271,19 +326,20 @@ export default function ContasReceber() {
           <h1 className="text-3xl font-bold text-gray-900">Contas a Receber</h1>
           <p className="text-gray-500">Acompanhe seus recebimentos pendentes</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col w-full sm:w-auto sm:flex-row gap-2">
           <ExportDropdown
             disabled={filteredItems.length === 0}
             onExportPdf={exportarPdf}
             onExportExcel={exportarExcel}
             onExportCsv={exportarCsv}
+            className="w-full sm:w-auto"
           />
           <Button
             onClick={() => {
               setEditingItem(null)
               setFormOpen(true)
             }}
-            className="bg-teal-600 hover:bg-teal-700 h-[44px]"
+            className="bg-teal-600 hover:bg-teal-700 h-[44px] w-full sm:w-auto"
           >
             <Plus className="mr-2 h-5 w-5" /> Nova Conta a Receber
           </Button>
