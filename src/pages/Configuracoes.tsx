@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, Building2, User } from 'lucide-react'
+import { Save, Building2, User, Wallet } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Link } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -157,6 +158,24 @@ export default function Configuracoes() {
               </CardFooter>
             </form>
           </Card>
+
+          {user?.perfil === 'admin' && (
+            <Card className="mt-6 shadow-sm border-t-4 border-t-[#268C83]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" /> Configurações Financeiras
+                </CardTitle>
+                <CardDescription>
+                  Ajuste os saldos iniciais das contas bancárias para o fluxo de caixa.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link to="/configuracoes/saldo-inicial">Configurar Saldos Iniciais</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="perfil">

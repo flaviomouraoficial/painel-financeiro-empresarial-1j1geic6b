@@ -14,6 +14,7 @@ import RelatoriosFluxoCaixa from './pages/RelatoriosFluxoCaixa'
 import RelatoriosPlanejadoRealizado from './pages/RelatoriosPlanejadoRealizado'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
+import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
 import Diagnostico from './pages/Diagnostico'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
@@ -59,6 +60,7 @@ const App = () => (
             />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route path="/configuracoes/saldo-inicial" element={<ConfiguracoesSaldoInicial />} />
             <Route path="/diagnostico" element={<Diagnostico />} />
           </Route>
           <Route path="*" element={<NotFound />} />
