@@ -35,7 +35,7 @@ export default function Login() {
     if (signInError) {
       setError(getErrorMessage(signInError))
     } else {
-      navigate('/')
+      navigate('/dashboard')
     }
   }
 

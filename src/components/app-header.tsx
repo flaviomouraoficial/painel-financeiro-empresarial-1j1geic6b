@@ -24,8 +24,8 @@ export function AppHeader() {
         .toUpperCase()
         .slice(0, 2)
     : 'U'
-  const profileLabel = user?.profile
-    ? user.profile.charAt(0).toUpperCase() + user.profile.slice(1)
+  const profileLabel = user?.perfil
+    ? user.perfil.charAt(0).toUpperCase() + user.perfil.slice(1)
     : 'Usuário'
 
   return (

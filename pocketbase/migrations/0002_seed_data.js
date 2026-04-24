@@ -14,7 +14,7 @@ migrate(
 
     const usersCol = app.findCollectionByNameOrId('_pb_users_auth_')
 
-    const seedUser = (email, name, profile) => {
+    const seedUser = (email, name, perfil) => {
       try {
         app.findAuthRecordByEmail('_pb_users_auth_', email)
       } catch (_) {
@@ -23,7 +23,7 @@ migrate(
         record.setPassword('Senha123!')
         record.setVerified(true)
         record.set('name', name)
-        record.set('profile', profile)
+        record.set('perfil', perfil)
         record.set('empresa_id', empresa.id)
         record.set('ativo', true)
         app.save(record)

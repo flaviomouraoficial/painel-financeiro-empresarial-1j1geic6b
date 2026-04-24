@@ -1,11 +1,10 @@
 migrate(
   (app) => {
-    const adminRule = "@request.auth.profile = 'admin' && empresa_id = @request.auth.empresa_id"
+    const adminRule = "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
     const baseRule = "@request.auth.id != '' && empresa_id = @request.auth.empresa_id"
-    const managerRule =
-      "@request.auth.profile != 'usuario' && empresa_id = @request.auth.empresa_id"
+    const managerRule = "@request.auth.perfil != 'usuario' && empresa_id = @request.auth.empresa_id"
     const userOwnedRule =
-      "(@request.auth.profile != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id"
+      "(@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id"
 
     const empresas = new Collection({
       name: 'empresas',
@@ -13,7 +12,7 @@ migrate(
       listRule: "@request.auth.id != '' && id = @request.auth.empresa_id",
       viewRule: "@request.auth.id != '' && id = @request.auth.empresa_id",
       createRule: null,
-      updateRule: "@request.auth.profile = 'admin' && id = @request.auth.empresa_id",
+      updateRule: "@request.auth.perfil = 'admin' && id = @request.auth.empresa_id",
       deleteRule: null,
       fields: [
         { name: 'cnpj', type: 'text', required: true },
@@ -31,7 +30,7 @@ migrate(
 
     const users = app.findCollectionByNameOrId('_pb_users_auth_')
     users.fields.add(
-      new SelectField({ name: 'profile', values: ['admin', 'gerente', 'usuario'], maxSelect: 1 }),
+      new SelectField({ name: 'perfil', values: ['admin', 'gerente', 'usuario'], maxSelect: 1 }),
     )
     users.fields.add(
       new RelationField({ name: 'empresa_id', collectionId: empresas.id, maxSelect: 1 }),
@@ -41,8 +40,8 @@ migrate(
     users.listRule = "@request.auth.id != '' && empresa_id = @request.auth.empresa_id"
     users.viewRule = "@request.auth.id != '' && empresa_id = @request.auth.empresa_id"
     users.updateRule =
-      "@request.auth.id != '' && (id = @request.auth.id || @request.auth.profile = 'admin')"
-    users.deleteRule = "@request.auth.profile = 'admin' && empresa_id = @request.auth.empresa_id"
+      "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'admin')"
+    users.deleteRule = "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
     app.save(users)
 
     const createBaseCollection = (name, fields, hasOwner = false) => {
@@ -340,7 +339,7 @@ migrate(
       } catch (_) {}
     }
     const users = app.findCollectionByNameOrId('_pb_users_auth_')
-    users.fields.removeByName('profile')
+    users.fields.removeByName('perfil')
     users.fields.removeByName('empresa_id')
     users.fields.removeByName('ativo')
     app.save(users)
