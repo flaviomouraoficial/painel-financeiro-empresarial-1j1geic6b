@@ -10,6 +10,7 @@ import Contas from './pages/Contas'
 import Relatorios from './pages/Relatorios'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
+import Diagnostico from './pages/Diagnostico'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route path="/diagnostico" element={<Diagnostico />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   Building2,
   Wallet,
+  Activity,
 } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
 
 import {
   Sidebar,
@@ -54,6 +56,16 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuth()
+
+  const itemsToRender = [...navItems]
+  if (user?.perfil === 'admin') {
+    itemsToRender.push({
+      title: 'Diagnóstico',
+      icon: Activity,
+      url: '/diagnostico',
+    })
+  }
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
@@ -65,7 +77,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {itemsToRender.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.items ? (
                     <>
