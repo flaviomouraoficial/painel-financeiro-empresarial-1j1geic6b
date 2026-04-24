@@ -12,6 +12,7 @@ import RelatoriosDre from './pages/RelatoriosDre'
 import RelatoriosEbitda from './pages/RelatoriosEbitda'
 import RelatoriosFluxoCaixa from './pages/RelatoriosFluxoCaixa'
 import RelatoriosPlanejadoRealizado from './pages/RelatoriosPlanejadoRealizado'
+import RecibosDespesas from './pages/RecibosDespesas'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
 import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/cadastros/:tipo" element={<Cadastros />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/contas/:tipo" element={<Contas />} />
+            <Route path="/recibos-despesas" element={<RecibosDespesas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/relatorios/dre" element={<RelatoriosDre />} />
             <Route path="/relatorios/ebitda" element={<RelatoriosEbitda />} />

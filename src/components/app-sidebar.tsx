@@ -48,6 +48,7 @@ const navItems = [
     items: [
       { title: 'Contas a Receber', url: '/contas/receber' },
       { title: 'Contas a Pagar', url: '/contas/pagar' },
+      { title: 'Recibos de Despesas', url: '/recibos-despesas' },
       { title: 'Contas Bancárias', url: '/cadastros/contas-bancarias' },
       { title: 'Cartões de Crédito', url: '/cadastros/cartoes-credito' },
     ],
