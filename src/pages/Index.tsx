@@ -81,60 +81,74 @@ const recentTransactions = [
 
 export default function Index() {
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard Financeiro</h1>
-        <div className="flex gap-2">
+    <div className="space-y-[16px] animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+        <h1>Dashboard Financeiro</h1>
+        <div className="flex gap-[16px]">
           <Button variant="outline">Exportar Relatório</Button>
           <Button>Novo Lançamento</Button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid gap-[16px] md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Total</CardTitle>
-            <Wallet className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-[14px] font-medium">Saldo Total</CardTitle>
+            <Wallet className="h-5 w-5 text-primary" aria-label="Ícone de carteira" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{formatCurrency(45320.5)}</div>
-            <p className="text-xs text-muted-foreground">+2.5% em relação ao mês anterior</p>
+            <div className="text-[24px] font-bold text-primary">{formatCurrency(45320.5)}</div>
+            <p className="text-[12px] text-muted-foreground mt-1">
+              +2.5% em relação ao mês anterior
+            </p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receitas (Mês)</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+            <CardTitle className="text-[14px] font-medium">Receitas (Mês)</CardTitle>
+            <ArrowUpRight
+              className="h-5 w-5 text-[hsl(142,71%,45%)]"
+              aria-label="Ícone de receita"
+            />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{formatCurrency(28500.0)}</div>
-            <p className="text-xs text-muted-foreground">+12% em relação ao mês anterior</p>
+            <div className="text-[24px] font-bold text-[hsl(142,71%,45%)]">
+              {formatCurrency(28500.0)}
+            </div>
+            <p className="text-[12px] text-muted-foreground mt-1">
+              +12% em relação ao mês anterior
+            </p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesas (Mês)</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-red-600" />
+            <CardTitle className="text-[14px] font-medium">Despesas (Mês)</CardTitle>
+            <ArrowDownRight
+              className="h-5 w-5 text-[hsl(0,84%,60%)]"
+              aria-label="Ícone de despesa"
+            />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(18200.0)}</div>
-            <p className="text-xs text-muted-foreground">-4% em relação ao mês anterior</p>
+            <div className="text-[24px] font-bold text-[hsl(0,84%,60%)]">
+              {formatCurrency(18200.0)}
+            </div>
+            <p className="text-[12px] text-muted-foreground mt-1">-4% em relação ao mês anterior</p>
           </CardContent>
         </Card>
-        <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
-            <DollarSign className="h-4 w-4 text-indigo-600" />
+            <CardTitle className="text-[14px] font-medium">Lucro Líquido</CardTitle>
+            <DollarSign className="h-5 w-5 text-primary" aria-label="Ícone de lucro" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{formatCurrency(10300.0)}</div>
-            <p className="text-xs text-muted-foreground">+8% em relação ao mês anterior</p>
+            <div className="text-[24px] font-bold text-primary">{formatCurrency(10300.0)}</div>
+            <p className="text-[12px] text-muted-foreground mt-1">+8% em relação ao mês anterior</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
+      <div className="grid gap-[16px] md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Receitas vs Despesas</CardTitle>
             <CardDescription>Comparativo dos últimos 6 meses</CardDescription>
@@ -170,43 +184,49 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <div className="col-span-3 space-y-4">
-          <Card className="shadow-sm border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/10">
+        <div className="col-span-3 space-y-[16px]">
+          <Card className="border-[#ffeacc] dark:border-[#7a4810] bg-[#fffbf5] dark:bg-[#2e1a06]">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-md font-semibold text-orange-800 dark:text-orange-400">
+              <CardTitle className="text-[16px] font-semibold text-[hsl(38,92%,40%)] dark:text-[hsl(38,92%,60%)]">
                 Contas a Receber Vencidas
               </CardTitle>
-              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <AlertCircle className="h-5 w-5 text-[hsl(38,92%,50%)]" aria-label="Aviso" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-700 dark:text-orange-500">
+              <div className="text-[24px] font-bold text-[hsl(38,92%,40%)] dark:text-[hsl(38,92%,60%)]">
                 2 pendências
               </div>
-              <p className="text-sm text-orange-600/80 mb-4">Total de {formatCurrency(3200)}</p>
+              <p className="text-[14px] text-[hsl(38,92%,40%)]/80 mb-4">
+                Total de {formatCurrency(3200)}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-orange-200 text-orange-700 hover:bg-orange-100"
+                className="w-full border-[#ffeacc] text-[hsl(38,92%,40%)] hover:bg-[#ffeacc]"
               >
                 Ver Detalhes
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/10">
+          <Card className="border-[#ffcccc] dark:border-[#7a1a1a] bg-[#fff5f5] dark:bg-[#2e0a0a]">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-md font-semibold text-red-800 dark:text-red-400">
+              <CardTitle className="text-[16px] font-semibold text-[hsl(0,84%,40%)] dark:text-[hsl(0,84%,60%)]">
                 Contas a Pagar Vencidas
               </CardTitle>
-              <Clock className="h-5 w-5 text-red-600" />
+              <Clock className="h-5 w-5 text-[hsl(0,84%,60%)]" aria-label="Relógio" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-700 dark:text-red-500">1 pendência</div>
-              <p className="text-sm text-red-600/80 mb-4">Total de {formatCurrency(850)}</p>
+              <div className="text-[24px] font-bold text-[hsl(0,84%,40%)] dark:text-[hsl(0,84%,60%)]">
+                1 pendência
+              </div>
+              <p className="text-[14px] text-[hsl(0,84%,40%)]/80 mb-4">
+                Total de {formatCurrency(850)}
+              </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-red-200 text-red-700 hover:bg-red-100"
+                className="w-full border-[#ffcccc] text-[hsl(0,84%,40%)] hover:bg-[#ffcccc]"
               >
                 Ver Detalhes
               </Button>
@@ -215,7 +235,7 @@ export default function Index() {
         </div>
       </div>
 
-      <Card className="shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle>Últimos Lançamentos</CardTitle>
           <CardDescription>Suas movimentações mais recentes</CardDescription>
@@ -242,15 +262,15 @@ export default function Index() {
                       variant={t.type === 'receita' ? 'default' : 'destructive'}
                       className={
                         t.type === 'receita'
-                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200 border-none'
+                          ? 'bg-[#e6f4ea] text-[hsl(142,71%,35%)] hover:bg-[#cce8d5] border-none'
+                          : 'bg-[#ffe6e6] text-[hsl(0,84%,40%)] hover:bg-[#ffcccc] border-none'
                       }
                     >
                       {t.type === 'receita' ? 'Receita' : 'Despesa'}
                     </Badge>
                   </TableCell>
                   <TableCell
-                    className={`text-right font-semibold ${t.type === 'receita' ? 'text-emerald-600' : 'text-red-600'}`}
+                    className={`text-right font-semibold ${t.type === 'receita' ? 'text-[hsl(142,71%,40%)]' : 'text-[hsl(0,84%,50%)]'}`}
                   >
                     {t.type === 'receita' ? '+' : '-'}
                     {formatCurrency(t.value)}

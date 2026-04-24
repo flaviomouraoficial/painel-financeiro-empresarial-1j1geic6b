@@ -56,12 +56,12 @@ export function AppSidebar() {
   const location = useLocation()
 
   return (
-    <Sidebar>
+    <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2 mb-4 mt-2 text-primary font-bold text-sm">
-            <Building2 className="h-5 w-5" />
-            <span>Trend Consultoria</span>
+          <SidebarGroupLabel className="flex items-center gap-2 mb-4 mt-2 text-primary font-bold text-[14px]">
+            <Building2 className="h-6 w-6" />
+            <span className="truncate">Trend Consultoria</span>
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
