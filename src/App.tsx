@@ -17,6 +17,7 @@ import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
 import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
 import Diagnostico from './pages/Diagnostico'
+import DiagnosticoRecibos from './pages/DiagnosticoRecibos'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/configuracoes/saldo-inicial" element={<ConfiguracoesSaldoInicial />} />
             <Route path="/diagnostico" element={<Diagnostico />} />
+            <Route path="/diagnostico-recibos" element={<DiagnosticoRecibos />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
