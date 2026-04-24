@@ -151,14 +151,20 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
         empresa_id: user.empresa_id,
         cartao_credito_id: form.cartao_credito_id || '',
       }
-      if (recibo) await updateRecibo(recibo.id, payload, itens)
-      else await createRecibo(payload, itens)
-      toast({ title: 'Recibo salvo com sucesso', duration: 3000 })
+      if (recibo) {
+        await updateRecibo(recibo.id, payload, itens)
+        toast({ title: 'Recibo atualizado com sucesso', duration: 3000 })
+      } else {
+        await createRecibo(payload, itens)
+        toast({ title: 'Recibo criado com sucesso', duration: 3000 })
+      }
       onSuccess()
       onOpenChange(false)
     } catch (e) {
       toast({
-        title: 'Erro ao salvar recibo. Tente novamente.',
+        title: recibo
+          ? 'Erro ao atualizar recibo. Tente novamente.'
+          : 'Erro ao criar recibo. Tente novamente.',
         variant: 'destructive',
         duration: 5000,
       })
@@ -409,10 +415,18 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
             </div>
           </ScrollArea>
           <DialogFooter className="p-6 border-t bg-background">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              className="h-[44px] rounded-lg"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={loading}>
+            <Button
+              onClick={handleSave}
+              disabled={loading || !form.cliente_id || itens.length === 0}
+              className="bg-[#268C83] hover:bg-[#1a665f] h-[44px] rounded-lg"
+            >
               {loading ? 'Salvando...' : 'Salvar Recibo'}
             </Button>
           </DialogFooter>

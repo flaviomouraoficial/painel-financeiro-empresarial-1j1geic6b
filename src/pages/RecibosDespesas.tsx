@@ -64,7 +64,9 @@ export default function RecibosDespesas() {
     try {
       toast({ title: 'Gerando PDF...', duration: 3000 })
       const itens = await getReciboItens(recibo.id)
-      await generateReciboPDF(recibo, itens)
+      const { default: pb } = await import('@/lib/pocketbase/client')
+      const empresa = await pb.collection('empresas').getOne(recibo.empresa_id)
+      await generateReciboPDF(recibo, itens, empresa)
     } catch (e) {
       toast({ title: 'Erro ao gerar PDF', variant: 'destructive', duration: 5000 })
     }
@@ -121,9 +123,9 @@ export default function RecibosDespesas() {
                 setSelected(null)
                 setFormOpen(true)
               }}
-              variant="outline"
+              className="bg-[#268C83] hover:bg-[#1a665f] h-[44px] rounded-lg"
             >
-              Criar Recibo
+              Novo Recibo
             </Button>
           </div>
         ) : (

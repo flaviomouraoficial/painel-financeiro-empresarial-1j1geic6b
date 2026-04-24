@@ -1,9 +1,14 @@
 import { exportToPdf } from '@/lib/pdf-export'
 import { formatCurrency, formatDate } from '@/lib/format'
 
-export async function generateReciboPDF(recibo: any, itens: any[]) {
+export async function generateReciboPDF(recibo: any, itens: any[], empresa?: any) {
+  const logoHtml = empresa?.logo_url
+    ? `<img src="${empresa.logo_url}" class="logo" style="max-height: 60px; max-width: 150px; object-fit: contain; margin-bottom: 10px;" />`
+    : ''
   const tableHtml = `
     <div style="margin-bottom: 20px;">
+      ${logoHtml}
+      ${empresa ? `<h4>${empresa.razao_social || empresa.nome_fantasia} - CNPJ: ${empresa.cnpj}</h4>` : ''}
       <h3>Dados do Recibo</h3>
       <p><strong>Número:</strong> ${recibo.numero_recibo}</p>
       <p><strong>Status:</strong> ${String(recibo.status).toUpperCase()}</p>
