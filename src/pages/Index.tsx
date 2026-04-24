@@ -1,8 +1,12 @@
+import { useState, useEffect } from 'react'
 import { ArrowDownRight, ArrowUpRight, DollarSign, Wallet, AlertCircle, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { LancamentosForm } from '@/components/lancamentos/LancamentosForm'
+import { getOpcoes } from '@/services/opcoes'
 import {
   Bar,
   BarChart,
@@ -80,13 +84,20 @@ const recentTransactions = [
 ]
 
 export default function Index() {
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [opcoes, setOpcoes] = useState({ categorias: [], contas: [], cartoes: [] })
+
+  useEffect(() => {
+    getOpcoes().then(setOpcoes)
+  }, [])
+
   return (
     <div className="space-y-[16px] animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
-        <h1>Dashboard Financeiro</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard Financeiro</h1>
         <div className="flex gap-[16px]">
           <Button variant="outline">Exportar Relatório</Button>
-          <Button>Novo Lançamento</Button>
+          <Button onClick={() => setIsFormOpen(true)}>Novo Lançamento</Button>
         </div>
       </div>
 
@@ -281,6 +292,25 @@ export default function Index() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-[20px]">
+          <DialogHeader>
+            <DialogTitle className="text-[20px] font-semibold text-slate-900">
+              Novo Lançamento
+            </DialogTitle>
+          </DialogHeader>
+          <LancamentosForm
+            categorias={opcoes.categorias as any}
+            contas={opcoes.contas as any}
+            cartoes={opcoes.cartoes as any}
+            onSuccess={() => {
+              setIsFormOpen(false)
+            }}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
