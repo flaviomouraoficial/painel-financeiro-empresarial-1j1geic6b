@@ -58,6 +58,9 @@ const navItems = [
     items: [
       { title: 'Visão Geral', url: '/relatorios' },
       { title: 'DRE', url: '/relatorios/dre' },
+      { title: 'EBITDA', url: '/relatorios/ebitda' },
+      { title: 'Fluxo de Caixa', url: '/relatorios/fluxo-caixa' },
+      { title: 'Planejado x Realizado', url: '/relatorios/planejado-realizado' },
     ],
   },
   { title: 'Gestão de Usuários', icon: ShieldCheck, url: '/usuarios' },

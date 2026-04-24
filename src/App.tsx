@@ -9,6 +9,9 @@ import Lancamentos from './pages/Lancamentos'
 import Contas from './pages/Contas'
 import Relatorios from './pages/Relatorios'
 import RelatoriosDre from './pages/RelatoriosDre'
+import RelatoriosEbitda from './pages/RelatoriosEbitda'
+import RelatoriosFluxoCaixa from './pages/RelatoriosFluxoCaixa'
+import RelatoriosPlanejadoRealizado from './pages/RelatoriosPlanejadoRealizado'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
 import Diagnostico from './pages/Diagnostico'
@@ -48,6 +51,12 @@ const App = () => (
             <Route path="/contas/:tipo" element={<Contas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/relatorios/dre" element={<RelatoriosDre />} />
+            <Route path="/relatorios/ebitda" element={<RelatoriosEbitda />} />
+            <Route path="/relatorios/fluxo-caixa" element={<RelatoriosFluxoCaixa />} />
+            <Route
+              path="/relatorios/planejado-realizado"
+              element={<RelatoriosPlanejadoRealizado />}
+            />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/diagnostico" element={<Diagnostico />} />
