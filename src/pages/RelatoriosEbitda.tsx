@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { toast } from 'sonner'
+import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +18,8 @@ export default function RelatoriosEbitda() {
   const [data, setData] = useState<any>(null)
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [isExporting, setIsExporting] = useState(false)
+  const chartRef = useRef<HTMLDivElement>(null)
 
   const fetchEbitda = async () => {
     setLoading(true)
@@ -120,6 +124,77 @@ export default function RelatoriosEbitda() {
     }
   }
 
+  const exportarPdf = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    setIsExporting(true)
+    try {
+      const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
+      const chartImg = captureChart(chartRef)
+
+      const tableHtml = `
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th style="text-align: right">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Receita Bruta</td>
+              <td style="text-align: right; font-weight: bold;">${formatCurrency(data.receitaBruta)}</td>
+            </tr>
+            <tr>
+              <td>(-) Custos Diretos</td>
+              <td style="text-align: right; color: #dc2626;">${formatCurrency(data.custosDiretos)}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">(=) Lucro Bruto</td>
+              <td style="text-align: right; font-weight: bold;">${formatCurrency(data.lucroBruto)}</td>
+            </tr>
+            <tr>
+              <td>(-) Despesas Operacionais</td>
+              <td style="text-align: right; color: #dc2626;">${formatCurrency(data.despesasOperacionais)}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; font-size: 14px;">EBITDA</td>
+              <td style="text-align: right; font-weight: bold; font-size: 14px; ${data.ebitda >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">
+                ${formatCurrency(data.ebitda)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      `
+
+      const startDate = new Date(dataInicio + 'T00:00:00')
+      const endDate = new Date(dataFim + 'T00:00:00')
+      const year = format(startDate, 'yyyy')
+      const startMonth = format(startDate, 'MM')
+      const endMonth = format(endDate, 'MM')
+
+      await exportToPdf({
+        filename: `EBITDA_${year}_${startMonth}_a_${endMonth}.pdf`,
+        title: 'Relatório de EBITDA',
+        period: `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`,
+        tableHtml,
+        chartImages: chartImg ? [chartImg] : [],
+        orientation: 'portrait',
+      })
+
+      toast.success('PDF gerado com sucesso', {
+        style: { backgroundColor: '#22c55e', color: 'white', border: 'none' },
+        duration: 3000,
+      })
+    } catch (err) {
+      toast.error('Erro ao gerar PDF. Tente novamente.', {
+        style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
+        duration: 5000,
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   useEffect(() => {
     fetchEbitda()
   }, [])
@@ -149,8 +224,17 @@ export default function RelatoriosEbitda() {
           <Button onClick={fetchEbitda} className="bg-[#268C83] hover:bg-teal-700 text-white">
             Gerar Relatório
           </Button>
-          <Button variant="outline" disabled>
-            <Download className="mr-2 h-4 w-4" />
+          <Button
+            variant="outline"
+            onClick={exportarPdf}
+            disabled={isExporting || loading || !data || data.empty}
+            className="h-[44px]"
+          >
+            {isExporting ? (
+              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Exportar PDF
           </Button>
         </div>
@@ -254,20 +338,22 @@ export default function RelatoriosEbitda() {
               <CardTitle>EBITDA Mensal (Últimos 12 meses)</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={{ ebitda: { label: 'EBITDA', color: '#268C83' } }}
-                className="h-[350px] w-full"
-              >
-                <BarChart
-                  data={data.chartData}
-                  margin={{ top: 20, right: 0, left: -20, bottom: 0 }}
+              <div ref={chartRef} className="w-full">
+                <ChartContainer
+                  config={{ ebitda: { label: 'EBITDA', color: '#268C83' } }}
+                  className="h-[350px] w-full"
                 >
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
-                  <RechartsTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="ebitda" fill="var(--color-ebitda)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
+                  <BarChart
+                    data={data.chartData}
+                    margin={{ top: 20, right: 0, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="ebitda" fill="var(--color-ebitda)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </div>
             </CardContent>
           </Card>
         </div>

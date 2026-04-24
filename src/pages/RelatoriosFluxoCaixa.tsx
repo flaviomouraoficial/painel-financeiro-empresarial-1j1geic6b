@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { toast } from 'sonner'
+import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +26,8 @@ export default function RelatoriosFluxoCaixa() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [tipoRelatorio, setTipoRelatorio] = useState('ambos')
+  const [isExporting, setIsExporting] = useState(false)
+  const chartRef = useRef<HTMLDivElement>(null)
 
   const fetchFluxoCaixa = async () => {
     setLoading(true)
@@ -153,6 +157,81 @@ export default function RelatoriosFluxoCaixa() {
     }
   }
 
+  const exportarPdf = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    setIsExporting(true)
+    try {
+      const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
+      const chartImg = captureChart(chartRef)
+
+      const tableHtml = `
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              ${tipoRelatorio !== 'realizado' ? '<th style="text-align: right">Projetado</th>' : ''}
+              ${tipoRelatorio !== 'projetado' ? '<th style="text-align: right">Realizado</th>' : ''}
+              ${tipoRelatorio === 'ambos' ? '<th style="text-align: right">Diferença</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Saldo Inicial</td>
+              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right">${formatCurrency(data.saldoInicial)}</td>` : ''}
+              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right">${formatCurrency(data.saldoInicial)}</td>` : ''}
+              ${tipoRelatorio === 'ambos' ? '<td style="text-align: right">-</td>' : ''}
+            </tr>
+            <tr>
+              <td style="color: #16a34a;">(+) Entradas</td>
+              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; color: #16a34a;">${formatCurrency(data.projetadoEntradas)}</td>` : ''}
+              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; color: #16a34a;">${formatCurrency(data.realizadoEntradas)}</td>` : ''}
+              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right">${formatCurrency(data.realizadoEntradas - data.projetadoEntradas)}</td>` : ''}
+            </tr>
+            <tr>
+              <td style="color: #dc2626;">(-) Saídas</td>
+              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; color: #dc2626;">${formatCurrency(data.projetadoSaidas)}</td>` : ''}
+              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; color: #dc2626;">${formatCurrency(data.realizadoSaidas)}</td>` : ''}
+              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right">${formatCurrency(data.realizadoSaidas - data.projetadoSaidas)}</td>` : ''}
+            </tr>
+            <tr>
+              <td style="font-weight: bold;">Saldo Final</td>
+              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; font-weight: bold; ${data.saldoFinalProjetado >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(data.saldoFinalProjetado)}</td>` : ''}
+              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; font-weight: bold; ${data.saldoFinalRealizado >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(data.saldoFinalRealizado)}</td>` : ''}
+              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right; font-weight: bold;">${formatCurrency(data.saldoFinalRealizado - data.saldoFinalProjetado)}</td>` : ''}
+            </tr>
+          </tbody>
+        </table>
+      `
+
+      const startDate = new Date(dataInicio + 'T00:00:00')
+      const endDate = new Date(dataFim + 'T00:00:00')
+      const year = format(startDate, 'yyyy')
+      const startMonth = format(startDate, 'MM')
+      const endMonth = format(endDate, 'MM')
+
+      await exportToPdf({
+        filename: `FluxoCaixa_${year}_${startMonth}_a_${endMonth}.pdf`,
+        title: 'Fluxo de Caixa',
+        period: `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`,
+        tableHtml,
+        chartImages: chartImg ? [chartImg] : [],
+        orientation: 'portrait',
+      })
+
+      toast.success('PDF gerado com sucesso', {
+        style: { backgroundColor: '#22c55e', color: 'white', border: 'none' },
+        duration: 3000,
+      })
+    } catch (err) {
+      toast.error('Erro ao gerar PDF. Tente novamente.', {
+        style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
+        duration: 5000,
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   useEffect(() => {
     fetchFluxoCaixa()
   }, [])
@@ -192,8 +271,17 @@ export default function RelatoriosFluxoCaixa() {
           <Button onClick={fetchFluxoCaixa} className="bg-[#268C83] hover:bg-teal-700 text-white">
             Gerar Relatório
           </Button>
-          <Button variant="outline" disabled>
-            <Download className="mr-2 h-4 w-4" />
+          <Button
+            variant="outline"
+            onClick={exportarPdf}
+            disabled={isExporting || loading || !data || data.empty}
+            className="h-[44px]"
+          >
+            {isExporting ? (
+              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Exportar PDF
           </Button>
         </div>
@@ -247,41 +335,43 @@ export default function RelatoriosFluxoCaixa() {
               <CardTitle>Evolução do Saldo Diário</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={{
-                  projetado: { label: 'Projetado', color: '#268C83' },
-                  realizado: { label: 'Realizado', color: '#10B981' },
-                }}
-                className="h-[300px] w-full"
-              >
-                <LineChart
-                  data={data.chartData}
-                  margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
+              <div ref={chartRef} className="w-full">
+                <ChartContainer
+                  config={{
+                    projetado: { label: 'Projetado', color: '#268C83' },
+                    realizado: { label: 'Realizado', color: '#10B981' },
+                  }}
+                  className="h-[300px] w-full"
                 >
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                  <RechartsTooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  {tipoRelatorio !== 'realizado' && (
-                    <Line
-                      type="monotone"
-                      dataKey="projetado"
-                      stroke="var(--color-projetado)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  )}
-                  {tipoRelatorio !== 'projetado' && (
-                    <Line
-                      type="monotone"
-                      dataKey="realizado"
-                      stroke="var(--color-realizado)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  )}
-                </LineChart>
-              </ChartContainer>
+                  <LineChart
+                    data={data.chartData}
+                    margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    {tipoRelatorio !== 'realizado' && (
+                      <Line
+                        type="monotone"
+                        dataKey="projetado"
+                        stroke="var(--color-projetado)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    )}
+                    {tipoRelatorio !== 'projetado' && (
+                      <Line
+                        type="monotone"
+                        dataKey="realizado"
+                        stroke="var(--color-realizado)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    )}
+                  </LineChart>
+                </ChartContainer>
+              </div>
             </CardContent>
           </Card>
 

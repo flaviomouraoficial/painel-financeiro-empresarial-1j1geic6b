@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { ptBR } from 'date-fns/locale'
 import { CalendarIcon, FileText, SearchX, AlertCircle, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,8 @@ export default function RelatoriosDre() {
   const [error, setError] = useState('')
   const [lancamentos, setLancamentos] = useState<any[]>([])
   const [hasFetched, setHasFetched] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const chartRef = useRef<HTMLDivElement>(null)
 
   const gerarRelatorio = async () => {
     if (!dataInicio || !dataFim) return
@@ -102,6 +105,65 @@ export default function RelatoriosDre() {
   const lucroOperacional = lucroBruto - despesasOperacionais
   const lucroAntesImpostos = lucroOperacional - despesasFinanceiras + receitasFinanceiras
   const lucroLiquido = lucroAntesImpostos - impostos
+
+  const exportarPdf = async () => {
+    if (!dataInicio || !dataFim) return
+    setIsExporting(true)
+    try {
+      const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
+      const chartImg = captureChart(chartRef)
+
+      const tableHtml = `
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th style="text-align: right">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableData
+              .map(
+                (row) => `
+              <tr>
+                <td style="${row.bold ? 'font-weight: bold;' : ''} ${row.isSubtotal ? 'color: #6b7280;' : ''}">${row.desc}</td>
+                <td style="text-align: right; ${row.bold ? 'font-weight: bold;' : ''} ${row.isFinal ? (row.valor >= 0 ? 'color: #16a34a;' : 'color: #dc2626;') : ''}">
+                  ${row.isNegative && row.valor > 0 ? `- ${formatCurrency(row.valor)}` : formatCurrency(row.valor)}
+                </td>
+              </tr>
+            `,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      `
+
+      const year = format(dataInicio, 'yyyy')
+      const startMonth = format(dataInicio, 'MM')
+      const endMonth = format(dataFim, 'MM')
+
+      await exportToPdf({
+        filename: `DRE_${year}_${startMonth}_a_${endMonth}.pdf`,
+        title: 'DRE — Demonstração de Resultado do Exercício',
+        period: `${format(dataInicio, 'dd/MM/yyyy')} a ${format(dataFim, 'dd/MM/yyyy')}`,
+        tableHtml,
+        chartImages: chartImg ? [chartImg] : [],
+        orientation: 'portrait',
+      })
+
+      toast.success('PDF gerado com sucesso', {
+        style: { backgroundColor: '#22c55e', color: 'white', border: 'none' },
+        duration: 3000,
+      })
+    } catch (err) {
+      toast.error('Erro ao gerar PDF. Tente novamente.', {
+        style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
+        duration: 5000,
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const tableData = [
     { desc: 'RECEITAS BRUTAS', valor: receitasBrutas, bold: true },
@@ -210,10 +272,16 @@ export default function RelatoriosDre() {
             </Button>
             <Button
               variant="secondary"
-              disabled
-              className="w-full sm:w-auto bg-gray-200 text-gray-500"
+              onClick={exportarPdf}
+              disabled={isExporting || loading || !hasFetched || lancamentos.length === 0}
+              className="w-full sm:w-auto h-[44px] bg-gray-200 text-gray-700 hover:bg-gray-300"
             >
-              <FileText className="mr-2 h-4 w-4" /> Exportar PDF
+              {isExporting ? (
+                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-2 h-4 w-4" />
+              )}
+              Exportar PDF
             </Button>
           </div>
         </CardContent>
@@ -309,7 +377,7 @@ export default function RelatoriosDre() {
               <CardDescription>Receitas vs Custos e Despesas</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[300px]" ref={chartRef}>
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>

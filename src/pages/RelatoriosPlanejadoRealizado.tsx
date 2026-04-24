@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { toast } from 'sonner'
+import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +26,8 @@ export default function RelatoriosPlanejadoRealizado() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [agrupamento, setAgrupamento] = useState('categoria')
+  const [isExporting, setIsExporting] = useState(false)
+  const chartRef = useRef<HTMLDivElement>(null)
 
   const fetchPlanejadoRealizado = async () => {
     setLoading(true)
@@ -133,6 +137,119 @@ export default function RelatoriosPlanejadoRealizado() {
     }
   }
 
+  const exportarPdf = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    setIsExporting(true)
+    try {
+      const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
+      const chartImg = captureChart(chartRef)
+
+      let thead = ''
+      let tbody = ''
+
+      if (agrupamento === 'categoria') {
+        thead = `
+          <tr>
+            <th>Categoria</th>
+            <th style="text-align: right">Planejado</th>
+            <th style="text-align: right">Realizado</th>
+            <th style="text-align: right">Diferença</th>
+            <th style="text-align: right">Variação</th>
+          </tr>
+        `
+        tbody = data.rows
+          .map((row: any) => {
+            const isGood = row.tipoCat === 'receita' ? row.diff >= 0 : row.diff <= 0
+            return `
+            <tr>
+              <td>${row.name} <span style="font-size: 10px; color: #6b7280;">(${row.tipoCat})</span></td>
+              <td style="text-align: right">${formatCurrency(row.planejado)}</td>
+              <td style="text-align: right">${formatCurrency(row.realizado)}</td>
+              <td style="text-align: right; ${isGood ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(row.diff)}</td>
+              <td style="text-align: right; font-weight: bold; ${isGood ? 'color: #16a34a;' : 'color: #dc2626;'}">${row.perc.toFixed(1)}%</td>
+            </tr>
+          `
+          })
+          .join('')
+      } else {
+        thead = `
+          <tr>
+            <th rowspan="2" style="border-right: 1px solid #e5e7eb;">Nome</th>
+            <th colspan="3" style="text-align: center; border-right: 1px solid #e5e7eb;">Receitas</th>
+            <th colspan="3" style="text-align: center; border-right: 1px solid #e5e7eb;">Despesas</th>
+            <th colspan="3" style="text-align: center;">Resultado</th>
+          </tr>
+          <tr>
+            <th style="text-align: right">Plan</th>
+            <th style="text-align: right">Real</th>
+            <th style="text-align: right; border-right: 1px solid #e5e7eb;">Diff</th>
+            <th style="text-align: right">Plan</th>
+            <th style="text-align: right">Real</th>
+            <th style="text-align: right; border-right: 1px solid #e5e7eb;">Diff</th>
+            <th style="text-align: right">Plan</th>
+            <th style="text-align: right">Real</th>
+            <th style="text-align: right">Diff</th>
+          </tr>
+        `
+        tbody = data.rows
+          .map((row: any) => {
+            const recDiff = row.realizadoRec - row.planejadoRec
+            const desDiff = row.realizadoDes - row.planejadoDes
+            const resDiff = row.diff
+            return `
+            <tr>
+              <td style="border-right: 1px solid #e5e7eb; font-weight: bold;">${row.name}</td>
+              <td style="text-align: right">${formatCurrency(row.planejadoRec)}</td>
+              <td style="text-align: right">${formatCurrency(row.realizadoRec)}</td>
+              <td style="text-align: right; border-right: 1px solid #e5e7eb; ${recDiff >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(recDiff)}</td>
+              <td style="text-align: right">${formatCurrency(row.planejadoDes)}</td>
+              <td style="text-align: right">${formatCurrency(row.realizadoDes)}</td>
+              <td style="text-align: right; border-right: 1px solid #e5e7eb; ${desDiff <= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(desDiff)}</td>
+              <td style="text-align: right">${formatCurrency(row.planejadoRec - row.planejadoDes)}</td>
+              <td style="text-align: right">${formatCurrency(row.realizadoRec - row.realizadoDes)}</td>
+              <td style="text-align: right; font-weight: bold; ${resDiff >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(resDiff)}</td>
+            </tr>
+          `
+          })
+          .join('')
+      }
+
+      const tableHtml = `
+        <table class="pdf-table">
+          <thead>${thead}</thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      `
+
+      const startDate = new Date(dataInicio + 'T00:00:00')
+      const endDate = new Date(dataFim + 'T00:00:00')
+      const year = format(startDate, 'yyyy')
+      const startMonth = format(startDate, 'MM')
+      const endMonth = format(endDate, 'MM')
+
+      await exportToPdf({
+        filename: `PlanejadoRealizado_${year}_${startMonth}_a_${endMonth}.pdf`,
+        title: 'Planejado x Realizado',
+        period: `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`,
+        tableHtml,
+        chartImages: chartImg ? [chartImg] : [],
+        orientation: agrupamento === 'categoria' ? 'portrait' : 'landscape',
+      })
+
+      toast.success('PDF gerado com sucesso', {
+        style: { backgroundColor: '#22c55e', color: 'white', border: 'none' },
+        duration: 3000,
+      })
+    } catch (err) {
+      toast.error('Erro ao gerar PDF. Tente novamente.', {
+        style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
+        duration: 5000,
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   useEffect(() => {
     fetchPlanejadoRealizado()
   }, [])
@@ -176,8 +293,17 @@ export default function RelatoriosPlanejadoRealizado() {
           >
             Gerar Relatório
           </Button>
-          <Button variant="outline" disabled>
-            <Download className="mr-2 h-4 w-4" />
+          <Button
+            variant="outline"
+            onClick={exportarPdf}
+            disabled={isExporting || loading || !data || data.empty}
+            className="h-[44px]"
+          >
+            {isExporting ? (
+              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Exportar PDF
           </Button>
         </div>
@@ -231,22 +357,27 @@ export default function RelatoriosPlanejadoRealizado() {
               <CardTitle>Comparativo ({agrupamento.replace('_', ' ')})</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={{
-                  Planejado: { label: 'Planejado', color: '#268C83' },
-                  Realizado: { label: 'Realizado', color: '#10B981' },
-                }}
-                className="h-[300px] w-full"
-              >
-                <BarChart data={data.chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
-                  <RechartsTooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Bar dataKey="Planejado" fill="var(--color-Planejado)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Realizado" fill="var(--color-Realizado)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
+              <div ref={chartRef} className="w-full">
+                <ChartContainer
+                  config={{
+                    Planejado: { label: 'Planejado', color: '#268C83' },
+                    Realizado: { label: 'Realizado', color: '#10B981' },
+                  }}
+                  className="h-[300px] w-full"
+                >
+                  <BarChart
+                    data={data.chartData}
+                    margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
+                    <RechartsTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey="Planejado" fill="var(--color-Planejado)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Realizado" fill="var(--color-Realizado)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </div>
             </CardContent>
           </Card>
 
