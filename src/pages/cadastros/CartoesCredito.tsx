@@ -58,12 +58,10 @@ export default function CartoesCreditoList() {
         pb
           .collection('cartoes_credito')
           .getFullList({ filter: `empresa_id = "${user.empresa_id}"`, sort: '-created' }),
-        pb
-          .collection('contas_bancarias')
-          .getFullList({
-            filter: `empresa_id = "${user.empresa_id}" && ativo = true`,
-            sort: '+banco',
-          }),
+        pb.collection('contas_bancarias').getFullList({
+          filter: `empresa_id = "${user.empresa_id}" && ativo = true`,
+          sort: '+banco',
+        }),
       ])
       setData(records)
       setContas(ctas)
@@ -108,11 +106,9 @@ export default function CartoesCreditoList() {
 
     if (formData.numero_completo) {
       const ultimos = formData.numero_completo.slice(-4)
-      const res = await pb
-        .collection('cartoes_credito')
-        .getFullList({
-          filter: `numero_ultimos_digitos = "${ultimos}" && banco = "${formData.banco}" && empresa_id = "${user.empresa_id}"`,
-        })
+      const res = await pb.collection('cartoes_credito').getFullList({
+        filter: `numero_ultimos_digitos = "${ultimos}" && banco = "${formData.banco}" && empresa_id = "${user.empresa_id}"`,
+      })
       if (res.length > 0 && res[0].id !== editingId)
         return 'Parece que este cartão já está cadastrado (mesmos 4 últimos dígitos no mesmo banco).'
     }

@@ -4,6 +4,8 @@ import FornecedoresList from './cadastros/Fornecedores'
 import ProdutosList from './cadastros/Produtos'
 import ContasBancariasList from './cadastros/ContasBancarias'
 import CartoesCreditoList from './cadastros/CartoesCredito'
+import CategoriasList from './cadastros/Categorias'
+import ProjetosList from './cadastros/Projetos'
 import GenericList from './cadastros/GenericList'
 
 export default function Cadastros() {
@@ -20,6 +22,10 @@ export default function Cadastros() {
       return <ContasBancariasList />
     case 'cartoes-credito':
       return <CartoesCreditoList />
+    case 'categorias':
+      return <CategoriasList />
+    case 'projetos':
+      return <ProjetosList />
     default:
       return <GenericList tipo={tipo || ''} />
   }

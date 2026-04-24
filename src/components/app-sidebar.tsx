@@ -39,6 +39,7 @@ const navItems = [
       { title: 'Produtos/Serviços', url: '/cadastros/produtos' },
       { title: 'Categorias', url: '/cadastros/categorias' },
       { title: 'Centros de Custo', url: '/cadastros/centros-custo' },
+      { title: 'Projetos', url: '/cadastros/projetos' },
     ],
   },
   { title: 'Lançamentos', icon: ArrowRightLeft, url: '/lancamentos' },

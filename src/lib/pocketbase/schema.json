@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T14:29:38.206Z",
+  "generatedAt": "2026-04-24T14:35:26.312Z",
   "collections": [
     {
       "name": "users",
@@ -798,6 +798,33 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "cor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "icone",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "moeda",
+            "salário",
+            "venda",
+            "aluguel",
+            "energia",
+            "água",
+            "internet",
+            "transporte",
+            "alimentação",
+            "saúde",
+            "educação",
+            "lazer",
+            "outros"
+          ]
         }
       ],
       "indexes": []
@@ -876,7 +903,27 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["planejamento", "em_andamento", "concluido", "cancelado"]
+          "selectValues": ["planejamento", "em_andamento", "pausado", "concluido", "cancelado"]
+        },
+        {
+          "name": "responsavel_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "centro_custo_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "centros_custo"
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
