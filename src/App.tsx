@@ -8,6 +8,7 @@ import Cadastros from './pages/Cadastros'
 import Lancamentos from './pages/Lancamentos'
 import Contas from './pages/Contas'
 import ContasReceber from './pages/ContasReceber'
+import ContasPagar from './pages/ContasPagar'
 import Relatorios from './pages/Relatorios'
 import RelatoriosDre from './pages/RelatoriosDre'
 import RelatoriosEbitda from './pages/RelatoriosEbitda'
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/cadastros/:tipo" element={<Cadastros />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/financeiro/contas-receber" element={<ContasReceber />} />
+            <Route path="/financeiro/contas-pagar" element={<ContasPagar />} />
             <Route path="/contas/:tipo" element={<Contas />} />
             <Route path="/recibos-despesas" element={<RecibosDespesas />} />
             <Route path="/relatorios" element={<Relatorios />} />

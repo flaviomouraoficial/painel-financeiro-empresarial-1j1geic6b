@@ -48,7 +48,7 @@ const navItems = [
     icon: Wallet,
     items: [
       { title: 'Contas a Receber', url: '/financeiro/contas-receber' },
-      { title: 'Contas a Pagar', url: '/contas/pagar' },
+      { title: 'Contas a Pagar', url: '/financeiro/contas-pagar' },
       { title: 'Recibos de Despesas', url: '/recibos-despesas' },
       { title: 'Contas Bancárias', url: '/cadastros/contas-bancarias' },
       { title: 'Cartões de Crédito', url: '/cadastros/cartoes-credito' },
