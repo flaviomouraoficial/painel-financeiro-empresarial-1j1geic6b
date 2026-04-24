@@ -45,6 +45,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const { user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [fetchingData, setFetchingData] = useState(false)
   const [clientes, setClientes] = useState<any[]>([])
   const [contas, setContas] = useState<any[]>([])
   const [cartoes, setCartoes] = useState<any[]>([])
@@ -69,6 +70,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   ])
 
   const loadData = async () => {
+    setFetchingData(true)
     try {
       const [cliRes, contRes, cartRes] = await Promise.all([
         pb.collection('clientes').getFullList({ sort: 'nome' }),
@@ -107,6 +109,8 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
       }
     } catch (e) {
       toast({ title: 'Erro ao carregar dados', variant: 'destructive', duration: 5000 })
+    } finally {
+      setFetchingData(false)
     }
   }
   useEffect(() => {
@@ -181,238 +185,272 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
             <DialogTitle>{recibo ? 'Editar Recibo' : 'Novo Recibo'}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh] px-6 py-4">
-            <div className="space-y-8">
-              {/* Section 1: Dados do Cliente */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">1. Dados do Cliente</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label>Cliente *</Label>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0"
-                        onClick={() => setShowNovoCliente(true)}
-                      >
-                        Criar novo cliente
-                      </Button>
-                    </div>
-                    <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
-                      <PopoverTrigger asChild>
+            {fetchingData ? (
+              <div className="space-y-6 py-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-1/4 bg-muted rounded animate-pulse" />
+                  <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/4 bg-muted rounded animate-pulse" />
+                  <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/4 bg-muted rounded animate-pulse" />
+                  <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-1/4 bg-muted rounded animate-pulse" />
+                  <div className="h-32 w-full bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* Section 1: Dados do Cliente */}
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">1. Dados do Cliente</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Cliente *</Label>
                         <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={openClientCombo}
-                          className="w-full justify-between font-normal"
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0"
+                          onClick={() => setShowNovoCliente(true)}
                         >
-                          {form.cliente_id
-                            ? clientes.find((cli) => cli.id === form.cliente_id)?.nome
-                            : 'Selecione um cliente...'}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          Criar novo cliente
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Buscar cliente..." />
-                          <CommandList>
-                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {clientes.map((cli) => (
-                                <CommandItem
-                                  key={cli.id}
-                                  value={cli.nome}
-                                  onSelect={() => {
-                                    setForm({ ...form, cliente_id: cli.id })
-                                    setOpenClientCombo(false)
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      'mr-2 h-4 w-4',
-                                      form.cliente_id === cli.id ? 'opacity-100' : 'opacity-0',
-                                    )}
-                                  />
-                                  {cli.nome}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                      </div>
+                      <Popover open={openClientCombo} onOpenChange={setOpenClientCombo}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openClientCombo}
+                            className="w-full justify-between font-normal"
+                          >
+                            {form.cliente_id
+                              ? clientes.find((cli) => cli.id === form.cliente_id)?.nome
+                              : 'Selecione um cliente...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar cliente..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {clientes
+                                  .filter((cli) => cli && cli.id)
+                                  .map((cli) => (
+                                    <CommandItem
+                                      key={cli.id}
+                                      value={cli.nome}
+                                      onSelect={() => {
+                                        setForm({ ...form, cliente_id: cli.id })
+                                        setOpenClientCombo(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          'mr-2 h-4 w-4',
+                                          form.cliente_id === cli.id ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      {cli.nome}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-                  {c && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-3 rounded-lg border">
+                    {c && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-3 rounded-lg border">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Nome/Razão Social</Label>
+                          <p className="text-sm font-medium">{c.nome}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">CPF/CNPJ</Label>
+                          <p className="text-sm font-medium">{c.cpf_cnpj || '-'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">E-mail</Label>
+                          <p className="text-sm font-medium">{c.email || '-'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Telefone</Label>
+                          <p className="text-sm font-medium">{c.telefone || '-'}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Section 2: Dados da Nota Fiscal */}
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">2. Dados da Nota Fiscal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Número da Nota Fiscal *</Label>
+                      <Input
+                        value={form.numero_nf}
+                        onChange={(e) => setForm({ ...form, numero_nf: e.target.value })}
+                        placeholder="Ex: 12345"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data da Nota Fiscal *</Label>
+                      <Input
+                        type="date"
+                        value={form.data_nf}
+                        onChange={(e) => setForm({ ...form, data_nf: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Descrição (Opcional)</Label>
+                      <Input
+                        value={form.descricao_nf || ''}
+                        onChange={(e) => setForm({ ...form, descricao_nf: e.target.value })}
+                        placeholder="Descrição do serviço/produto"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Valor Total da NF (R$) *</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={form.valor_nf}
+                        onChange={(e) => setForm({ ...form, valor_nf: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Arquivo da NF (Opcional)</Label>
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setForm({ ...form, arquivo_nf: e.target.files?.[0] || null })
+                        }
+                        accept="image/*,.pdf"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section 3: Itens de Despesa */}
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">3. Itens de Despesa</h3>
+                  <ItemsEditor itens={itens} setItens={setItens} />
+                </section>
+
+                {/* Section 4: Dados Bancários */}
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    4. Dados Bancários para Reembolso
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Conta Bancária (Destino) *</Label>
+                      <Select
+                        value={form.conta_bancaria_id || undefined}
+                        onValueChange={(v) => setForm({ ...form, conta_bancaria_id: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contas
+                            .filter((b) => b && b.id)
+                            .map((b) => (
+                              <SelectItem key={b.id} value={b.id}>
+                                {b.banco} - {b.agencia}/{b.numero_conta}
+                              </SelectItem>
+                            ))}
+                          {contas.filter((b) => b && b.id).length === 0 && (
+                            <SelectItem value="none" disabled>
+                              Nenhuma conta encontrada
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cartão de Crédito (Opcional)</Label>
+                      <Select
+                        value={form.cartao_credito_id || 'none'}
+                        onValueChange={(v) =>
+                          setForm({ ...form, cartao_credito_id: v === 'none' ? '' : v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Nenhum" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {cartoes
+                            .filter((car) => car && car.id)
+                            .map((car) => (
+                              <SelectItem key={car.id} value={car.id}>
+                                {car.banco} - {car.numero_ultimos_digitos}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section 5: Resumo do Recibo */}
+                <section className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">5. Resumo do Recibo</h3>
+                  <div className="bg-muted/50 p-4 rounded-xl border space-y-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <Label className="text-xs text-muted-foreground">Nome/Razão Social</Label>
-                        <p className="text-sm font-medium">{c.nome}</p>
+                        <span className="text-muted-foreground block text-xs">Número Gerado</span>
+                        <span className="font-semibold">{form.numero_recibo}</span>
                       </div>
                       <div>
-                        <Label className="text-xs text-muted-foreground">CPF/CNPJ</Label>
-                        <p className="text-sm font-medium">{c.cpf_cnpj || '-'}</p>
+                        <span className="text-muted-foreground block text-xs">Data Atual</span>
+                        <span className="font-medium">{formatDate(form.data_criacao)}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block text-xs">
+                          Cliente Selecionado
+                        </span>
+                        <span className="font-medium truncate block">{c?.nome || '-'}</span>
                       </div>
                       <div>
-                        <Label className="text-xs text-muted-foreground">E-mail</Label>
-                        <p className="text-sm font-medium">{c.email || '-'}</p>
+                        <span className="text-muted-foreground block text-xs">Total NF</span>
+                        <span className="font-medium">{formatCurrency(form.valor_nf)}</span>
                       </div>
                       <div>
-                        <Label className="text-xs text-muted-foreground">Telefone</Label>
-                        <p className="text-sm font-medium">{c.telefone || '-'}</p>
+                        <span className="text-muted-foreground block text-xs">Subtotal Itens</span>
+                        <span className="font-medium">{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block text-xs">Conta Destino</span>
+                        <span className="font-medium truncate block">
+                          {selectedConta
+                            ? `${selectedConta.banco} - ${selectedConta.agencia}/${selectedConta.numero_conta}`
+                            : '-'}
+                        </span>
                       </div>
                     </div>
-                  )}
-                </div>
-              </section>
-
-              {/* Section 2: Dados da Nota Fiscal */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">2. Dados da Nota Fiscal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Número da Nota Fiscal *</Label>
-                    <Input
-                      value={form.numero_nf}
-                      onChange={(e) => setForm({ ...form, numero_nf: e.target.value })}
-                      placeholder="Ex: 12345"
-                    />
+                    {diff !== 0 && (
+                      <div className="bg-orange-50 text-orange-600 p-2 rounded text-xs font-medium border border-orange-200">
+                        Atenção: o valor total de itens ({formatCurrency(subtotal)}) é diferente do
+                        valor da nota fiscal ({formatCurrency(form.valor_nf)})
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label>Data da Nota Fiscal *</Label>
-                    <Input
-                      type="date"
-                      value={form.data_nf}
-                      onChange={(e) => setForm({ ...form, data_nf: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Descrição (Opcional)</Label>
-                    <Input
-                      value={form.descricao_nf || ''}
-                      onChange={(e) => setForm({ ...form, descricao_nf: e.target.value })}
-                      placeholder="Descrição do serviço/produto"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor Total da NF (R$) *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={form.valor_nf}
-                      onChange={(e) => setForm({ ...form, valor_nf: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Arquivo da NF (Opcional)</Label>
-                    <Input
-                      type="file"
-                      onChange={(e) =>
-                        setForm({ ...form, arquivo_nf: e.target.files?.[0] || null })
-                      }
-                      accept="image/*,.pdf"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* Section 3: Itens de Despesa */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">3. Itens de Despesa</h3>
-                <ItemsEditor itens={itens} setItens={setItens} />
-              </section>
-
-              {/* Section 4: Dados Bancários */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">
-                  4. Dados Bancários para Reembolso
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Conta Bancária (Destino) *</Label>
-                    <Select
-                      value={form.conta_bancaria_id}
-                      onValueChange={(v) => setForm({ ...form, conta_bancaria_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contas.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.banco} - {b.agencia}/{b.numero_conta}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cartão de Crédito (Opcional)</Label>
-                    <Select
-                      value={form.cartao_credito_id}
-                      onValueChange={(v) => setForm({ ...form, cartao_credito_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Nenhum" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
-                        {cartoes.map((car) => (
-                          <SelectItem key={car.id} value={car.id}>
-                            {car.banco} - {car.numero_ultimos_digitos}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </section>
-
-              {/* Section 5: Resumo do Recibo */}
-              <section className="space-y-4">
-                <h3 className="text-lg font-semibold border-b pb-2">5. Resumo do Recibo</h3>
-                <div className="bg-muted/50 p-4 rounded-xl border space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground block text-xs">Número Gerado</span>
-                      <span className="font-semibold">{form.numero_recibo}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs">Data Atual</span>
-                      <span className="font-medium">{formatDate(form.data_criacao)}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground block text-xs">
-                        Cliente Selecionado
-                      </span>
-                      <span className="font-medium truncate block">{c?.nome || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs">Total NF</span>
-                      <span className="font-medium">{formatCurrency(form.valor_nf)}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs">Subtotal Itens</span>
-                      <span className="font-medium">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground block text-xs">Conta Destino</span>
-                      <span className="font-medium truncate block">
-                        {selectedConta
-                          ? `${selectedConta.banco} - ${selectedConta.agencia}/${selectedConta.numero_conta}`
-                          : '-'}
-                      </span>
-                    </div>
-                  </div>
-                  {diff !== 0 && (
-                    <div className="bg-orange-50 text-orange-600 p-2 rounded text-xs font-medium border border-orange-200">
-                      Atenção: o valor total de itens ({formatCurrency(subtotal)}) é diferente do
-                      valor da nota fiscal ({formatCurrency(form.valor_nf)})
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
+                </section>
+              </div>
+            )}
           </ScrollArea>
           <DialogFooter className="p-6 border-t bg-background">
             <Button
@@ -424,7 +462,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
             </Button>
             <Button
               onClick={handleSave}
-              disabled={loading || !form.cliente_id || itens.length === 0}
+              disabled={loading || fetchingData || !form.cliente_id || itens.length === 0}
               className="bg-[#268C83] hover:bg-[#1a665f] h-[44px] rounded-lg"
             >
               {loading ? 'Salvando...' : 'Salvar Recibo'}
