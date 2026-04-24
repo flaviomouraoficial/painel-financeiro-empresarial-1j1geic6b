@@ -37,7 +37,8 @@ const navItems = [
       { title: 'Clientes', url: '/cadastros/clientes' },
       { title: 'Fornecedores', url: '/cadastros/fornecedores' },
       { title: 'Produtos/Serviços', url: '/cadastros/produtos' },
-      { title: 'Contas Bancárias', url: '/cadastros/contas-bancarias' },
+      { title: 'Categorias', url: '/cadastros/categorias' },
+      { title: 'Centros de Custo', url: '/cadastros/centros-custo' },
     ],
   },
   { title: 'Lançamentos', icon: ArrowRightLeft, url: '/lancamentos' },
@@ -47,6 +48,8 @@ const navItems = [
     items: [
       { title: 'Contas a Receber', url: '/contas/receber' },
       { title: 'Contas a Pagar', url: '/contas/pagar' },
+      { title: 'Contas Bancárias', url: '/cadastros/contas-bancarias' },
+      { title: 'Cartões de Crédito', url: '/cadastros/cartoes-credito' },
     ],
   },
   { title: 'Relatórios', icon: PieChart, url: '/relatorios' },
@@ -58,7 +61,11 @@ export function AppSidebar() {
   const location = useLocation()
   const { user } = useAuth()
 
-  const itemsToRender = [...navItems]
+  const itemsToRender = navItems.filter((item) => {
+    if (item.title === 'Gestão de Usuários' && user?.perfil !== 'admin') return false
+    return true
+  })
+
   if (user?.perfil === 'admin') {
     itemsToRender.push({
       title: 'Diagnóstico',
