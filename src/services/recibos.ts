@@ -23,15 +23,33 @@ export const createRecibo = async (data: any, itens: any[]) => {
   Object.keys(data).forEach((k) => {
     if (data[k] !== undefined && data[k] !== null) formData.append(k, data[k])
   })
-  const recibo = await pb.collection('recibos').create(formData)
-  for (const item of itens) {
-    await pb.collection('itens_recibos').create({
-      ...item,
-      recibo_id: recibo.id,
-      empresa_id: data.empresa_id,
-      valor_total: item.quantidade * item.valor_unitario,
-    })
+
+  let recibo
+  try {
+    recibo = await pb.collection('recibos').create(formData)
+  } catch (error) {
+    throw error
   }
+
+  try {
+    for (const item of itens) {
+      await pb.collection('itens_recibos').create({
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        recibo_id: recibo.id,
+        empresa_id: data.empresa_id,
+        valor_total: item.quantidade * item.valor_unitario,
+      })
+    }
+  } catch (error) {
+    await pb
+      .collection('recibos')
+      .delete(recibo.id)
+      .catch(() => {})
+    throw new Error('Falha ao salvar os itens do recibo. A operação foi cancelada.')
+  }
+
   return recibo
 }
 
@@ -48,16 +66,24 @@ export const updateRecibo = async (id: string, data: any, itens: any[]) => {
     formData.append('arquivo_nf', '')
   }
   const recibo = await pb.collection('recibos').update(id, formData)
+
   const oldItens = await getReciboItens(id)
-  for (const old of oldItens) await pb.collection('itens_recibos').delete(old.id)
-  for (const item of itens) {
-    await pb.collection('itens_recibos').create({
-      ...item,
-      recibo_id: id,
-      empresa_id: data.empresa_id,
-      valor_total: item.quantidade * item.valor_unitario,
-    })
+  try {
+    for (const old of oldItens) await pb.collection('itens_recibos').delete(old.id)
+    for (const item of itens) {
+      await pb.collection('itens_recibos').create({
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        recibo_id: id,
+        empresa_id: data.empresa_id,
+        valor_total: item.quantidade * item.valor_unitario,
+      })
+    }
+  } catch (error) {
+    throw new Error('Falha ao atualizar os itens do recibo. Verifique os dados e tente novamente.')
   }
+
   return recibo
 }
 

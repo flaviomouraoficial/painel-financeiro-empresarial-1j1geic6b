@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess }: any) {
   const { user } = useAuth()
@@ -123,8 +124,14 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const selectedConta = contas.find((x) => x.id === form.conta_bancaria_id)
 
   const handleSave = async () => {
+    if (!form.numero_recibo)
+      return toast({ title: 'Informe o número do recibo', variant: 'destructive', duration: 5000 })
     if (!form.cliente_id)
       return toast({ title: 'Selecione um cliente', variant: 'destructive', duration: 5000 })
+    if (!form.data_criacao)
+      return toast({ title: 'Informe a data de criação', variant: 'destructive', duration: 5000 })
+    if (!form.data_nf)
+      return toast({ title: 'Informe a data da NF', variant: 'destructive', duration: 5000 })
     if (!form.numero_nf)
       return toast({ title: 'Informe o número da NF', variant: 'destructive', duration: 5000 })
     if (form.valor_nf <= 0)
@@ -152,6 +159,10 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
     try {
       const payload = {
         ...form,
+        data_criacao: form.data_criacao
+          ? new Date(`${form.data_criacao}T12:00:00Z`).toISOString()
+          : '',
+        data_nf: form.data_nf ? new Date(`${form.data_nf}T12:00:00Z`).toISOString() : '',
         empresa_id: user.empresa_id,
         cartao_credito_id: form.cartao_credito_id || '',
       }
@@ -164,14 +175,31 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
       }
       onSuccess()
       onOpenChange(false)
-    } catch (e) {
-      toast({
-        title: recibo
-          ? 'Erro ao atualizar recibo. Tente novamente.'
-          : 'Erro ao criar recibo. Tente novamente.',
-        variant: 'destructive',
-        duration: 5000,
-      })
+    } catch (e: any) {
+      const fieldErrors = extractFieldErrors(e)
+      const errorMsg = e instanceof Error ? e.message : ''
+      const isUniqueError =
+        errorMsg.toLowerCase().includes('unique') ||
+        fieldErrors.numero_recibo?.toLowerCase().includes('unique') ||
+        fieldErrors.numero_recibo?.toLowerCase().includes('already exists')
+
+      if (isUniqueError || fieldErrors.numero_recibo) {
+        toast({
+          title: 'Número de recibo já existe.',
+          description: 'Este número de recibo já foi utilizado. Altere o número e tente novamente.',
+          variant: 'destructive',
+          duration: 6000,
+        })
+      } else {
+        toast({
+          title: recibo
+            ? 'Erro ao atualizar recibo. Tente novamente.'
+            : 'Erro ao criar recibo. Tente novamente.',
+          description: errorMsg || 'Verifique os dados e tente novamente.',
+          variant: 'destructive',
+          duration: 5000,
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -211,7 +239,25 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                   <h3 className="text-lg font-semibold border-b pb-2">1. Dados do Cliente</h3>
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-2">
+                        <div className="space-y-2">
+                          <Label>Número do Recibo *</Label>
+                          <Input
+                            value={form.numero_recibo}
+                            onChange={(e) => setForm({ ...form, numero_recibo: e.target.value })}
+                            placeholder="Ex: REC-2023-00001"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Data de Criação *</Label>
+                          <Input
+                            type="date"
+                            value={form.data_criacao}
+                            onChange={(e) => setForm({ ...form, data_criacao: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
                         <Label>Cliente *</Label>
                         <Button
                           variant="link"
