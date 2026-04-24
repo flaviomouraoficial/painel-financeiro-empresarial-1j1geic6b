@@ -4,6 +4,8 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from './components/Layout'
 import Index from './pages/Index'
+import DashboardAvancado from './pages/DashboardAvancado'
+import NotificacoesPage from './pages/Notificacoes'
 import Cadastros from './pages/Cadastros'
 import Lancamentos from './pages/Lancamentos'
 import Contas from './pages/Contas'
@@ -51,6 +53,8 @@ const App = () => (
           >
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Index />} />
+            <Route path="/dashboard-avancado" element={<DashboardAvancado />} />
+            <Route path="/notificacoes" element={<NotificacoesPage />} />
             <Route path="/cadastros/:tipo" element={<Cadastros />} />
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/financeiro/contas-receber" element={<ContasReceber />} />

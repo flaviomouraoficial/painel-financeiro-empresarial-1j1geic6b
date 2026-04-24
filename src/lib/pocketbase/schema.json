@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T14:50:49.095Z",
+  "generatedAt": "2026-04-24T14:58:39.354Z",
   "collections": [
     {
       "name": "users",
@@ -1710,6 +1710,97 @@
           "name": "valor_total",
           "type": "number",
           "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "notificacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && usuario_id = @request.auth.id && empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && usuario_id = @request.auth.id && empresa_id = @request.auth.empresa_id",
+        "create": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "update": "@request.auth.id != '' && usuario_id = @request.auth.id && empresa_id = @request.auth.empresa_id",
+        "delete": "@request.auth.id != '' && usuario_id = @request.auth.id && empresa_id = @request.auth.empresa_id"
+      },
+      "fields": [
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "empresa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "empresas"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "alerta_financeiro",
+            "alerta_fluxo_caixa",
+            "recebimento",
+            "pagamento",
+            "lancamento"
+          ]
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "mensagem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "icone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lida",
+          "type": "bool",
+          "required": false,
           "system": false
         },
         {
