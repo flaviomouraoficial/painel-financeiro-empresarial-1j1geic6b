@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T14:35:26.312Z",
+  "generatedAt": "2026-04-24T14:40:55.744Z",
   "collections": [
     {
       "name": "users",
@@ -977,9 +977,58 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "departamento",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Vendas",
+            "Marketing",
+            "Operações",
+            "Financeiro",
+            "RH",
+            "TI",
+            "Administrativo",
+            "Outros"
+          ]
+        },
+        {
+          "name": "responsavel_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "orcamento_anual",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email_contato",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_centros_codigo_unique` ON `centros_custo` (codigo, empresa_id) WHERE codigo != ''"
+      ]
     },
     {
       "name": "lancamentos",
