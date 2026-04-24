@@ -31,6 +31,7 @@ export function LancamentosForm({
 }: LancamentosFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
     tipo: 'despesa',
     categoria_id: '',
@@ -56,6 +57,17 @@ export function LancamentosForm({
         conta_bancaria_id: lancamento.conta_bancaria_id || 'none',
         cartao_credito_id: lancamento.cartao_credito_id || 'none',
       })
+    } else {
+      setFormData({
+        tipo: 'despesa',
+        categoria_id: '',
+        descricao: '',
+        valor: '',
+        data_lancamento: new Date().toISOString().split('T')[0],
+        forma_pagamento: '',
+        conta_bancaria_id: 'none',
+        cartao_credito_id: 'none',
+      })
     }
   }, [lancamento])
 
@@ -68,6 +80,7 @@ export function LancamentosForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitted(true)
 
     if (
       !formData.tipo ||
@@ -141,6 +154,7 @@ export function LancamentosForm({
         <div>
           <Label>Tipo *</Label>
           <Select
+            disabled={loading}
             value={formData.tipo}
             onValueChange={(v) => setFormData({ ...formData, tipo: v, categoria_id: '' })}
           >
@@ -152,10 +166,14 @@ export function LancamentosForm({
               <SelectItem value="despesa">Despesa</SelectItem>
             </SelectContent>
           </Select>
+          {submitted && !formData.tipo && (
+            <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+          )}
         </div>
         <div>
           <Label>Categoria *</Label>
           <Select
+            disabled={loading}
             value={formData.categoria_id}
             onValueChange={(v) => setFormData({ ...formData, categoria_id: v })}
           >
@@ -172,17 +190,26 @@ export function LancamentosForm({
                 ))}
             </SelectContent>
           </Select>
+          {submitted && !formData.categoria_id && (
+            <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+          )}
         </div>
       </div>
 
       <div>
         <Label>Descrição *</Label>
         <Input
+          disabled={loading}
           value={formData.descricao}
           onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
           placeholder="Ex: Venda de consultoria"
-          className="h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83]"
+          className={`h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83] ${
+            submitted && !formData.descricao ? 'border-red-500 focus-visible:ring-red-500' : ''
+          }`}
         />
+        {submitted && !formData.descricao && (
+          <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
@@ -191,6 +218,7 @@ export function LancamentosForm({
           <Input
             type="number"
             step="0.01"
+            disabled={loading}
             value={formData.valor}
             onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
             placeholder="0,00"
@@ -198,24 +226,38 @@ export function LancamentosForm({
               isValorInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''
             }`}
           />
-          {isValorInvalid && (
+          {isValorInvalid ? (
             <p className="text-red-500 text-[12px] mt-1">O valor deve ser maior que zero</p>
+          ) : (
+            submitted &&
+            !formData.valor && (
+              <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+            )
           )}
         </div>
         <div>
           <Label>Data do lançamento *</Label>
           <Input
             type="date"
+            disabled={loading}
             value={formData.data_lancamento}
             onChange={(e) => setFormData({ ...formData, data_lancamento: e.target.value })}
-            className="h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83]"
+            className={`h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83] ${
+              submitted && !formData.data_lancamento
+                ? 'border-red-500 focus-visible:ring-red-500'
+                : ''
+            }`}
           />
+          {submitted && !formData.data_lancamento && (
+            <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+          )}
         </div>
       </div>
 
       <div>
         <Label>Forma de pagamento *</Label>
         <Select
+          disabled={loading}
           value={formData.forma_pagamento}
           onValueChange={(v) => setFormData({ ...formData, forma_pagamento: v })}
         >
@@ -226,11 +268,14 @@ export function LancamentosForm({
             <SelectItem value="dinheiro">Dinheiro</SelectItem>
             <SelectItem value="cheque">Cheque</SelectItem>
             <SelectItem value="pix">PIX</SelectItem>
-            <SelectItem value="ted">TED/DOC</SelectItem>
+            <SelectItem value="ted">TED</SelectItem>
             <SelectItem value="boleto">Boleto</SelectItem>
             <SelectItem value="cartao">Cartão</SelectItem>
           </SelectContent>
         </Select>
+        {submitted && !formData.forma_pagamento && (
+          <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
@@ -238,6 +283,7 @@ export function LancamentosForm({
           <div className="animate-fade-in">
             <Label>Conta Bancária</Label>
             <Select
+              disabled={loading}
               value={formData.conta_bancaria_id}
               onValueChange={(v) => setFormData({ ...formData, conta_bancaria_id: v })}
             >
@@ -260,6 +306,7 @@ export function LancamentosForm({
           <div className="animate-fade-in">
             <Label>Cartão de Crédito</Label>
             <Select
+              disabled={loading}
               value={formData.cartao_credito_id}
               onValueChange={(v) => setFormData({ ...formData, cartao_credito_id: v })}
             >

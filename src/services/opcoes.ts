@@ -8,22 +8,13 @@ export const getOpcoes = async () => {
     const filter = `empresa_id = "${user.empresa_id}" && ativo = true`
 
     const [categorias, contas, cartoes] = await Promise.all([
-      pb
-        .collection('categorias')
-        .getFullList({ filter, sort: 'nome' })
-        .catch(() => []),
-      pb
-        .collection('contas_bancarias')
-        .getFullList({ filter, sort: 'banco' })
-        .catch(() => []),
-      pb
-        .collection('cartoes_credito')
-        .getFullList({ filter, sort: 'banco' })
-        .catch(() => []),
+      pb.collection('categorias').getFullList({ filter, sort: 'nome' }),
+      pb.collection('contas_bancarias').getFullList({ filter, sort: 'banco' }),
+      pb.collection('cartoes_credito').getFullList({ filter, sort: 'banco' }),
     ])
     return { categorias, contas, cartoes }
   } catch (error) {
     console.error(error)
-    return { categorias: [], contas: [], cartoes: [] }
+    throw new Error('Erro ao carregar dados. Tente novamente.')
   }
 }

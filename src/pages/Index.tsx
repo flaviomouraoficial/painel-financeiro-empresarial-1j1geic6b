@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LancamentosForm } from '@/components/lancamentos/LancamentosForm'
 import { getOpcoes } from '@/services/opcoes'
+import { useToast } from '@/hooks/use-toast'
 import {
   Bar,
   BarChart,
@@ -86,10 +87,20 @@ const recentTransactions = [
 export default function Index() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [opcoes, setOpcoes] = useState({ categorias: [], contas: [], cartoes: [] })
+  const { toast } = useToast()
 
   useEffect(() => {
-    getOpcoes().then(setOpcoes)
-  }, [])
+    getOpcoes()
+      .then(setOpcoes)
+      .catch((err) => {
+        toast({
+          title: 'Erro',
+          description: err.message,
+          variant: 'destructive',
+          duration: 5000,
+        })
+      })
+  }, [toast])
 
   return (
     <div className="space-y-[16px] animate-fade-in-up">
@@ -300,15 +311,17 @@ export default function Index() {
               Novo Lançamento
             </DialogTitle>
           </DialogHeader>
-          <LancamentosForm
-            categorias={opcoes.categorias as any}
-            contas={opcoes.contas as any}
-            cartoes={opcoes.cartoes as any}
-            onSuccess={() => {
-              setIsFormOpen(false)
-            }}
-            onCancel={() => setIsFormOpen(false)}
-          />
+          {isFormOpen && (
+            <LancamentosForm
+              categorias={opcoes.categorias as any}
+              contas={opcoes.contas as any}
+              cartoes={opcoes.cartoes as any}
+              onSuccess={() => {
+                setIsFormOpen(false)
+              }}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

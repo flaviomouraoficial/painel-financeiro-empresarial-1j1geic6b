@@ -67,8 +67,17 @@ export default function Lancamentos() {
   })
 
   useEffect(() => {
-    getOpcoes().then(setOpcoes)
-  }, [])
+    getOpcoes()
+      .then(setOpcoes)
+      .catch((err) => {
+        toast({
+          title: 'Erro',
+          description: err.message,
+          variant: 'destructive',
+          duration: 5000,
+        })
+      })
+  }, [toast])
 
   const handleDelete = async (id: string) => {
     try {
@@ -166,17 +175,19 @@ export default function Lancamentos() {
               {editingLancamento ? 'Editar Lançamento' : 'Novo Lançamento'}
             </DialogTitle>
           </DialogHeader>
-          <LancamentosForm
-            lancamento={editingLancamento}
-            categorias={opcoes.categorias}
-            contas={opcoes.contas}
-            cartoes={opcoes.cartoes}
-            onSuccess={() => {
-              setIsFormOpen(false)
-              loadData()
-            }}
-            onCancel={() => setIsFormOpen(false)}
-          />
+          {isFormOpen && (
+            <LancamentosForm
+              lancamento={editingLancamento}
+              categorias={opcoes.categorias}
+              contas={opcoes.contas}
+              cartoes={opcoes.cartoes}
+              onSuccess={() => {
+                setIsFormOpen(false)
+                loadData()
+              }}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
