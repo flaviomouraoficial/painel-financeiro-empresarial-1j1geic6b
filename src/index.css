@@ -44,3 +44,61 @@
     --primary-foreground: 210 40% 98%;
   }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  [data-sidebar='sidebar'],
+  header.sticky,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-footer-group;
+  }
+
+  .recharts-wrapper,
+  svg {
+    page-break-inside: avoid;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .shadow-sm,
+  .border,
+  .rounded-md,
+  .rounded-lg,
+  .rounded-xl {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    border-radius: 0 !important;
+  }
+
+  .card,
+  .bg-card {
+    border: none !important;
+    background: transparent !important;
+  }
+}

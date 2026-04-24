@@ -2,37 +2,36 @@ import { exportToPdf } from '@/lib/pdf-export'
 import { formatCurrency, formatDate } from '@/lib/format'
 
 export async function generateReciboPDF(recibo: any, itens: any[], empresa?: any) {
-  const logoHtml = empresa?.logo_url
-    ? `<img src="${empresa.logo_url}" class="logo" style="max-height: 60px; max-width: 150px; object-fit: contain; margin-bottom: 10px;" />`
-    : ''
   const tableHtml = `
-    <div style="margin-bottom: 20px;">
-      ${logoHtml}
-      ${empresa ? `<h4>${empresa.razao_social || empresa.nome_fantasia} - CNPJ: ${empresa.cnpj}</h4>` : ''}
-      <h3>Dados do Recibo</h3>
-      <p><strong>Número:</strong> ${recibo.numero_recibo}</p>
-      <p><strong>Status:</strong> ${String(recibo.status).toUpperCase()}</p>
-      <p><strong>Data da Criação:</strong> ${formatDate(recibo.data_criacao)}</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
+      <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
+        <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados do Recibo</h3>
+        <p style="margin: 4px 0;"><strong>Número:</strong> ${recibo.numero_recibo}</p>
+        <p style="margin: 4px 0;"><strong>Status:</strong> ${String(recibo.status).toUpperCase()}</p>
+        <p style="margin: 4px 0;"><strong>Data da Criação:</strong> ${formatDate(recibo.data_criacao)}</p>
+      </div>
+      <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
+        <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados do Cliente</h3>
+        <p style="margin: 4px 0;"><strong>Nome:</strong> ${recibo.expand?.cliente_id?.nome || '-'}</p>
+        <p style="margin: 4px 0;"><strong>Documento:</strong> ${recibo.expand?.cliente_id?.cpf_cnpj || '-'}</p>
+      </div>
     </div>
-    <div style="margin-bottom: 20px;">
-      <h3>Dados do Cliente</h3>
-      <p><strong>Nome:</strong> ${recibo.expand?.cliente_id?.nome || '-'}</p>
-      <p><strong>Documento:</strong> ${recibo.expand?.cliente_id?.cpf_cnpj || '-'}</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
+      <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
+        <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados da Nota Fiscal (NF)</h3>
+        <p style="margin: 4px 0;"><strong>Número NF:</strong> ${recibo.numero_nf}</p>
+        <p style="margin: 4px 0;"><strong>Data NF:</strong> ${formatDate(recibo.data_nf)}</p>
+        <p style="margin: 4px 0;"><strong>Descrição:</strong> ${recibo.descricao_nf || '-'}</p>
+        <p style="margin: 4px 0;"><strong>Valor Total NF:</strong> ${formatCurrency(recibo.valor_nf)}</p>
+      </div>
+      <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
+        <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados Bancários para Reembolso</h3>
+        <p style="margin: 4px 0;"><strong>Banco:</strong> ${recibo.expand?.conta_bancaria_id?.banco || '-'}</p>
+        <p style="margin: 4px 0;"><strong>Agência/Conta:</strong> ${recibo.expand?.conta_bancaria_id?.agencia || '-'} / ${recibo.expand?.conta_bancaria_id?.numero_conta || '-'}</p>
+        ${recibo.expand?.cartao_credito_id ? `<p style="margin: 4px 0;"><strong>Cartão de Crédito:</strong> ${recibo.expand.cartao_credito_id.banco} (Final ${recibo.expand.cartao_credito_id.numero_ultimos_digitos || '-'})</p>` : ''}
+      </div>
     </div>
-    <div style="margin-bottom: 20px;">
-      <h3>Dados da Nota Fiscal (NF)</h3>
-      <p><strong>Número NF:</strong> ${recibo.numero_nf}</p>
-      <p><strong>Data NF:</strong> ${formatDate(recibo.data_nf)}</p>
-      <p><strong>Descrição:</strong> ${recibo.descricao_nf || '-'}</p>
-      <p><strong>Valor Total NF:</strong> ${formatCurrency(recibo.valor_nf)}</p>
-    </div>
-    <div style="margin-bottom: 20px;">
-      <h3>Dados Bancários para Reembolso</h3>
-      <p><strong>Banco:</strong> ${recibo.expand?.conta_bancaria_id?.banco || '-'}</p>
-      <p><strong>Agência/Conta:</strong> ${recibo.expand?.conta_bancaria_id?.agencia || '-'} / ${recibo.expand?.conta_bancaria_id?.numero_conta || '-'}</p>
-      ${recibo.expand?.cartao_credito_id ? `<p><strong>Cartão de Crédito:</strong> ${recibo.expand.cartao_credito_id.banco} (Final ${recibo.expand.cartao_credito_id.numero_ultimos_digitos || '-'})</p>` : ''}
-    </div>
-    <h3>Itens de Despesa</h3>
+    <h3 style="color: #268C83; font-size: 14px;">Itens de Despesa</h3>
     <table class="pdf-table">
       <thead>
         <tr>
