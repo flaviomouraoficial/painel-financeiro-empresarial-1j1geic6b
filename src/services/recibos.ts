@@ -24,12 +24,7 @@ export const createRecibo = async (data: any, itens: any[]) => {
     if (data[k] !== undefined && data[k] !== null) formData.append(k, data[k])
   })
 
-  let recibo
-  try {
-    recibo = await pb.collection('recibos').create(formData)
-  } catch (error) {
-    throw error
-  }
+  const recibo = await pb.collection('recibos').create(formData)
 
   try {
     for (const item of itens) {
