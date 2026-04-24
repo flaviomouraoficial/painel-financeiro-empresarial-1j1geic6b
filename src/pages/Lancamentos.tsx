@@ -160,9 +160,11 @@ export default function Lancamentos() {
       </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-[20px]">
           <DialogHeader>
-            <DialogTitle>{editingLancamento ? 'Editar Lançamento' : 'Novo Lançamento'}</DialogTitle>
+            <DialogTitle className="text-[20px] font-semibold text-slate-900">
+              {editingLancamento ? 'Editar Lançamento' : 'Novo Lançamento'}
+            </DialogTitle>
           </DialogHeader>
           <LancamentosForm
             lancamento={editingLancamento}

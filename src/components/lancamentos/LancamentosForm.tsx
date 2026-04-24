@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,7 +36,7 @@ export function LancamentosForm({
     categoria_id: '',
     descricao: '',
     valor: '',
-    data_lancamento: '',
+    data_lancamento: new Date().toISOString().split('T')[0],
     forma_pagamento: '',
     conta_bancaria_id: 'none',
     cartao_credito_id: 'none',
@@ -48,13 +49,18 @@ export function LancamentosForm({
         categoria_id: lancamento.categoria_id || '',
         descricao: lancamento.descricao || '',
         valor: lancamento.valor ? lancamento.valor.toString() : '',
-        data_lancamento: lancamento.data_lancamento ? lancamento.data_lancamento.split(' ')[0] : '',
+        data_lancamento: lancamento.data_lancamento
+          ? lancamento.data_lancamento.split(' ')[0]
+          : new Date().toISOString().split('T')[0],
         forma_pagamento: lancamento.forma_pagamento || '',
         conta_bancaria_id: lancamento.conta_bancaria_id || 'none',
         cartao_credito_id: lancamento.cartao_credito_id || 'none',
       })
     }
   }, [lancamento])
+
+  const showConta = ['dinheiro', 'pix', 'ted', 'boleto'].includes(formData.forma_pagamento)
+  const showCartao = formData.forma_pagamento === 'cartao'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,7 +75,7 @@ export function LancamentosForm({
     ) {
       toast({
         title: 'Erro',
-        description: 'Campos obrigatórios não preenchidos.',
+        description: 'Preencha todos os campos obrigatórios',
         variant: 'destructive',
         duration: 5000,
       })
@@ -82,7 +88,7 @@ export function LancamentosForm({
     if (isNaN(valorNum) || valorNum <= 0) {
       toast({
         title: 'Erro',
-        description: 'Valor deve ser maior que zero.',
+        description: 'O valor deve ser maior que zero',
         variant: 'destructive',
         duration: 5000,
       })
@@ -96,9 +102,9 @@ export function LancamentosForm({
         valor: valorNum,
         data_lancamento: `${formData.data_lancamento} 12:00:00.000Z`,
         conta_bancaria_id:
-          formData.conta_bancaria_id === 'none' ? null : formData.conta_bancaria_id,
+          showConta && formData.conta_bancaria_id !== 'none' ? formData.conta_bancaria_id : null,
         cartao_credito_id:
-          formData.cartao_credito_id === 'none' ? null : formData.cartao_credito_id,
+          showCartao && formData.cartao_credito_id !== 'none' ? formData.cartao_credito_id : null,
       }
 
       if (lancamento?.id) {
@@ -127,21 +133,21 @@ export function LancamentosForm({
   }
 
   const Label = ({ children }: { children: React.ReactNode }) => (
-    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+    <label className="text-[12px] font-medium leading-none text-slate-700 mb-2 block">
       {children}
     </label>
   )
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
           <Label>Tipo *</Label>
           <Select
             value={formData.tipo}
             onValueChange={(v) => setFormData({ ...formData, tipo: v, categoria_id: '' })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10 text-[14px] rounded-lg focus:ring-[#268C83]">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -150,13 +156,13 @@ export function LancamentosForm({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-2">
+        <div>
           <Label>Categoria *</Label>
           <Select
             value={formData.categoria_id}
             onValueChange={(v) => setFormData({ ...formData, categoria_id: v })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-10 text-[14px] rounded-lg focus:ring-[#268C83]">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -172,17 +178,18 @@ export function LancamentosForm({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div>
         <Label>Descrição *</Label>
         <Input
           value={formData.descricao}
           onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-          placeholder="Ex: Aluguel"
+          placeholder="Ex: Venda de consultoria"
+          className="h-10 text-[14px] rounded-lg focus-visible:ring-[#268C83]"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
           <Label>Valor *</Label>
           <Input
             type="number"
@@ -190,26 +197,28 @@ export function LancamentosForm({
             min="0.01"
             value={formData.valor}
             onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-            placeholder="0.00"
+            placeholder="0,00"
+            className="h-10 text-[14px] rounded-lg focus-visible:ring-[#268C83]"
           />
         </div>
-        <div className="space-y-2">
+        <div>
           <Label>Data do lançamento *</Label>
           <Input
             type="date"
             value={formData.data_lancamento}
             onChange={(e) => setFormData({ ...formData, data_lancamento: e.target.value })}
+            className="h-10 text-[14px] rounded-lg focus-visible:ring-[#268C83]"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div>
         <Label>Forma de pagamento *</Label>
         <Select
           value={formData.forma_pagamento}
           onValueChange={(v) => setFormData({ ...formData, forma_pagamento: v })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-10 text-[14px] rounded-lg focus:ring-[#268C83]">
             <SelectValue placeholder="Selecione" />
           </SelectTrigger>
           <SelectContent>
@@ -223,52 +232,68 @@ export function LancamentosForm({
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Conta Bancária</Label>
-          <Select
-            value={formData.conta_bancaria_id}
-            onValueChange={(v) => setFormData({ ...formData, conta_bancaria_id: v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Nenhuma" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {contas.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.banco}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Cartão de Crédito</Label>
-          <Select
-            value={formData.cartao_credito_id}
-            onValueChange={(v) => setFormData({ ...formData, cartao_credito_id: v })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Nenhum" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhum</SelectItem>
-              {cartoes.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.banco}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {showConta && (
+          <div className="animate-fade-in">
+            <Label>Conta Bancária</Label>
+            <Select
+              value={formData.conta_bancaria_id}
+              onValueChange={(v) => setFormData({ ...formData, conta_bancaria_id: v })}
+            >
+              <SelectTrigger className="h-10 text-[14px] rounded-lg focus:ring-[#268C83]">
+                <SelectValue placeholder="Nenhuma" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                {contas.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.banco}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {showCartao && (
+          <div className="animate-fade-in">
+            <Label>Cartão de Crédito</Label>
+            <Select
+              value={formData.cartao_credito_id}
+              onValueChange={(v) => setFormData({ ...formData, cartao_credito_id: v })}
+            >
+              <SelectTrigger className="h-10 text-[14px] rounded-lg focus:ring-[#268C83]">
+                <SelectValue placeholder="Nenhum" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {cartoes.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.banco}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+      <div className="flex justify-end gap-3 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+          className="h-[44px] px-[20px] rounded-lg text-[14px]"
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button
+          type="submit"
+          disabled={loading}
+          className="h-[44px] px-[20px] rounded-lg text-[14px] bg-[#268C83] hover:bg-[#1e736c] text-white border-transparent"
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {loading ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>
