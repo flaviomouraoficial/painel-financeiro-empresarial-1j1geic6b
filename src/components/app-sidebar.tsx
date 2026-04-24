@@ -52,7 +52,14 @@ const navItems = [
       { title: 'Cartões de Crédito', url: '/cadastros/cartoes-credito' },
     ],
   },
-  { title: 'Relatórios', icon: PieChart, url: '/relatorios' },
+  {
+    title: 'Relatórios',
+    icon: PieChart,
+    items: [
+      { title: 'Visão Geral', url: '/relatorios' },
+      { title: 'DRE', url: '/relatorios/dre' },
+    ],
+  },
   { title: 'Gestão de Usuários', icon: ShieldCheck, url: '/usuarios' },
   { title: 'Configurações', icon: Settings, url: '/configuracoes' },
 ]

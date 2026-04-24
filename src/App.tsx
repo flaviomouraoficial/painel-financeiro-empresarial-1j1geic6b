@@ -8,6 +8,7 @@ import Cadastros from './pages/Cadastros'
 import Lancamentos from './pages/Lancamentos'
 import Contas from './pages/Contas'
 import Relatorios from './pages/Relatorios'
+import RelatoriosDre from './pages/RelatoriosDre'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
 import Diagnostico from './pages/Diagnostico'
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/lancamentos" element={<Lancamentos />} />
             <Route path="/contas/:tipo" element={<Contas />} />
             <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/relatorios/dre" element={<RelatoriosDre />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/diagnostico" element={<Diagnostico />} />
