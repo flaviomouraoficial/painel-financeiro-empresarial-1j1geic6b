@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { AppSidebar } from './app-sidebar'
 import { AppHeader } from './app-header'
+import { InitialBalanceModal } from './InitialBalanceModal'
 
 export default function Layout() {
   return (
@@ -9,6 +10,7 @@ export default function Layout() {
       <AppSidebar />
       <SidebarInset className="flex flex-col min-h-screen bg-secondary dark:bg-background">
         <AppHeader />
+        <InitialBalanceModal />
         <div className="flex flex-col items-center w-full">
           <main className="w-full max-w-[1200px] flex-1 p-[24px] animate-fade-in duration-300">
             <Outlet />
