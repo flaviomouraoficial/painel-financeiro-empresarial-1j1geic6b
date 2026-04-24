@@ -173,6 +173,87 @@ export default function ContasReceber() {
     return true
   })
 
+  const exportarPdf = async () => {
+    if (filteredItems.length === 0) return
+    const { exportToPdf } = await import('@/lib/pdf-export')
+
+    const tableHtml = `
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Descrição</th>
+            <th style="text-align: right">Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredItems
+            .map(
+              (item) => `
+            <tr>
+              <td>${item.expand?.cliente_id?.nome || '-'}</td>
+              <td>${item.descricao || '-'}</td>
+              <td style="text-align: right">${formatBRL(item.valor_total)}</td>
+              <td>${formatD(item.data_vencimento)}</td>
+              <td>${item.status.toUpperCase()}</td>
+            </tr>
+          `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: `Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.pdf`,
+      title: 'Relatório de Contas a Receber',
+      period: `${filters.dataInicio ? formatD(filters.dataInicio) : 'Início'} a ${filters.dataFim ? formatD(filters.dataFim) : 'Fim'}`,
+      filters: `Status: ${filters.status} | Cliente: ${filters.cliente}`,
+      tableHtml,
+      orientation: 'landscape',
+    })
+  }
+
+  const exportarExcel = async () => {
+    if (filteredItems.length === 0) return
+    const { exportToExcel } = await import('@/lib/export-utils')
+
+    const data = [
+      ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+      ...filteredItems.map((item) => [
+        item.expand?.cliente_id?.nome || '-',
+        item.descricao || '-',
+        item.valor_total,
+        formatD(item.data_vencimento),
+        item.status.toUpperCase(),
+      ]),
+    ]
+
+    exportToExcel(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.xls`, [
+      { name: 'Contas a Receber', data },
+    ])
+  }
+
+  const exportarCsv = async () => {
+    if (filteredItems.length === 0) return
+    const { exportToCsv } = await import('@/lib/export-utils')
+
+    const data = [
+      ['Cliente', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+      ...filteredItems.map((item) => [
+        item.expand?.cliente_id?.nome || '-',
+        item.descricao || '-',
+        item.valor_total,
+        formatD(item.data_vencimento),
+        item.status.toUpperCase(),
+      ]),
+    ]
+
+    exportToCsv(`Contas_Receber_${format(new Date(), 'yyyy_MM_dd')}.csv`, data)
+  }
+
   if (error)
     return (
       <div className="p-8 text-center flex flex-col items-center">
@@ -190,15 +271,23 @@ export default function ContasReceber() {
           <h1 className="text-3xl font-bold text-gray-900">Contas a Receber</h1>
           <p className="text-gray-500">Acompanhe seus recebimentos pendentes</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingItem(null)
-            setFormOpen(true)
-          }}
-          className="bg-teal-600 hover:bg-teal-700 h-[44px]"
-        >
-          <Plus className="mr-2 h-5 w-5" /> Nova Conta a Receber
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExportDropdown
+            disabled={filteredItems.length === 0}
+            onExportPdf={exportarPdf}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+          />
+          <Button
+            onClick={() => {
+              setEditingItem(null)
+              setFormOpen(true)
+            }}
+            className="bg-teal-600 hover:bg-teal-700 h-[44px]"
+          >
+            <Plus className="mr-2 h-5 w-5" /> Nova Conta a Receber
+          </Button>
+        </div>
       </div>
 
       {!loading && <ContasReceberSummary items={items} />}

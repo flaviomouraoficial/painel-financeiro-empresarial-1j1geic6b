@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { ptBR } from 'date-fns/locale'
 import { CalendarIcon, FileText, SearchX, AlertCircle, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ExportDropdown } from '@/components/ExportDropdown'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
@@ -108,7 +109,6 @@ export default function RelatoriosDre() {
 
   const exportarPdf = async () => {
     if (!dataInicio || !dataFim) return
-    setIsExporting(true)
     try {
       const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
       const chartImg = captureChart(chartRef)
@@ -160,8 +160,73 @@ export default function RelatoriosDre() {
         style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
         duration: 5000,
       })
-    } finally {
-      setIsExporting(false)
+    }
+  }
+
+  const exportarExcel = async () => {
+    if (!dataInicio || !dataFim) return
+    try {
+      const { exportToExcel } = await import('@/lib/export-utils')
+      const year = format(dataInicio, 'yyyy')
+      const startMonth = format(dataInicio, 'MM')
+      const endMonth = format(dataFim, 'MM')
+
+      const rawData = tableData.map((r) => [
+        r.desc,
+        r.isNegative && r.valor > 0 ? -r.valor : r.valor,
+      ])
+
+      const sheets = [
+        {
+          name: 'DRE',
+          data: [['Descrição', 'Valor'], ...rawData],
+        },
+        {
+          name: 'Resumo',
+          data: [
+            ['Indicador', 'Valor'],
+            ['Receita Líquida', receitaLiquida],
+            ['Lucro Bruto', lucroBruto],
+            ['Lucro Operacional', lucroOperacional],
+            ['Lucro Líquido', lucroLiquido],
+          ],
+        },
+        {
+          name: 'Filtros',
+          data: [
+            ['Filtro', 'Valor'],
+            ['Período', `${format(dataInicio, 'dd/MM/yyyy')} a ${format(dataFim, 'dd/MM/yyyy')}`],
+          ],
+        },
+      ]
+
+      exportToExcel(`DRE_${year}_${startMonth}_a_${endMonth}.xls`, sheets)
+      toast.success('Excel gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar Excel')
+    }
+  }
+
+  const exportarCsv = async () => {
+    if (!dataInicio || !dataFim) return
+    try {
+      const { exportToCsv } = await import('@/lib/export-utils')
+      const year = format(dataInicio, 'yyyy')
+      const startMonth = format(dataInicio, 'MM')
+      const endMonth = format(dataFim, 'MM')
+
+      const rawData = tableData.map((r) => [
+        r.desc,
+        r.isNegative && r.valor > 0 ? -r.valor : r.valor,
+      ])
+
+      exportToCsv(`DRE_${year}_${startMonth}_a_${endMonth}.csv`, [
+        ['Descrição', 'Valor'],
+        ...rawData,
+      ])
+      toast.success('CSV gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar CSV')
     }
   }
 
@@ -270,19 +335,12 @@ export default function RelatoriosDre() {
               {loading && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
               Gerar Relatório
             </Button>
-            <Button
-              variant="secondary"
-              onClick={exportarPdf}
-              disabled={isExporting || loading || !hasFetched || lancamentos.length === 0}
-              className="w-full sm:w-auto h-[44px] bg-gray-200 text-gray-700 hover:bg-gray-300"
-            >
-              {isExporting ? (
-                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <FileText className="mr-2 h-4 w-4" />
-              )}
-              Exportar PDF
-            </Button>
+            <ExportDropdown
+              disabled={loading || !hasFetched || lancamentos.length === 0}
+              onExportPdf={exportarPdf}
+              onExportExcel={exportarExcel}
+              onExportCsv={exportarCsv}
+            />
           </div>
         </CardContent>
       </Card>

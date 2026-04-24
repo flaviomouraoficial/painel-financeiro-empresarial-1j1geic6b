@@ -159,7 +159,6 @@ export default function RelatoriosFluxoCaixa() {
 
   const exportarPdf = async () => {
     if (!dataInicio || !dataFim || !data || data.empty) return
-    setIsExporting(true)
     try {
       const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
       const chartImg = captureChart(chartRef)
@@ -227,8 +226,111 @@ export default function RelatoriosFluxoCaixa() {
         style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
         duration: 5000,
       })
-    } finally {
-      setIsExporting(false)
+    }
+  }
+
+  const exportarExcel = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToExcel } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      const sheets = [
+        {
+          name: 'FluxoCaixa',
+          data: [
+            ['Descrição', 'Projetado', 'Realizado', 'Diferença'],
+            ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
+            [
+              'Entradas',
+              data.projetadoEntradas,
+              data.realizadoEntradas,
+              data.realizadoEntradas - data.projetadoEntradas,
+            ],
+            [
+              'Saídas',
+              -data.projetadoSaidas,
+              -data.realizadoSaidas,
+              -(data.realizadoSaidas - data.projetadoSaidas),
+            ],
+            [
+              'Saldo Final',
+              data.saldoFinalProjetado,
+              data.saldoFinalRealizado,
+              data.saldoFinalRealizado - data.saldoFinalProjetado,
+            ],
+          ],
+        },
+        {
+          name: 'Diário',
+          data: [
+            [
+              'Data',
+              'Entradas Proj',
+              'Saídas Proj',
+              'Entradas Real',
+              'Saídas Real',
+              'Saldo Proj',
+              'Saldo Real',
+            ],
+            ...data.chartData.map((d: any) => {
+              const day = Object.values(data.chartData).find((x: any) => x.date === d.date) as any
+              return [
+                d.date,
+                day?.inProjetado || 0,
+                -(day?.outProjetado || 0),
+                day?.inRealizado || 0,
+                -(day?.outRealizado || 0),
+                d.projetado,
+                d.realizado,
+              ]
+            }),
+          ],
+        },
+      ]
+
+      exportToExcel(`FluxoCaixa_${year}_${startMonth}_a_${endMonth}.xls`, sheets)
+      toast.success('Excel gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar Excel')
+    }
+  }
+
+  const exportarCsv = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToCsv } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      exportToCsv(`FluxoCaixa_${year}_${startMonth}_a_${endMonth}.csv`, [
+        ['Descrição', 'Projetado', 'Realizado', 'Diferença'],
+        ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
+        [
+          'Entradas',
+          data.projetadoEntradas,
+          data.realizadoEntradas,
+          data.realizadoEntradas - data.projetadoEntradas,
+        ],
+        [
+          'Saídas',
+          -data.projetadoSaidas,
+          -data.realizadoSaidas,
+          -(data.realizadoSaidas - data.projetadoSaidas),
+        ],
+        [
+          'Saldo Final',
+          data.saldoFinalProjetado,
+          data.saldoFinalRealizado,
+          data.saldoFinalRealizado - data.saldoFinalProjetado,
+        ],
+      ])
+      toast.success('CSV gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar CSV')
     }
   }
 
@@ -271,19 +373,12 @@ export default function RelatoriosFluxoCaixa() {
           <Button onClick={fetchFluxoCaixa} className="bg-[#268C83] hover:bg-teal-700 text-white">
             Gerar Relatório
           </Button>
-          <Button
-            variant="outline"
-            onClick={exportarPdf}
-            disabled={isExporting || loading || !data || data.empty}
-            className="h-[44px]"
-          >
-            {isExporting ? (
-              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Exportar PDF
-          </Button>
+          <ExportDropdown
+            disabled={loading || !data || data.empty}
+            onExportPdf={exportarPdf}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+          />
         </div>
       </div>
 

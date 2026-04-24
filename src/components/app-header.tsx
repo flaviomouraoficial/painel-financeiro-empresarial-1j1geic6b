@@ -79,10 +79,22 @@ export function AppHeader() {
         toast({
           title: e.record.titulo,
           description: e.record.mensagem,
+          duration: 5000,
         })
       }
     }
   })
+
+  const markAsRead = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await pb.collection('notificacoes').update(id, { lida: true })
+    fetchNotificacoes()
+  }
+
+  const clearAll = async () => {
+    await Promise.all(notificacoes.map((n) => pb.collection('notificacoes').delete(n.id)))
+    fetchNotificacoes()
+  }
 
   const initials = user?.name ? user.name.substring(0, 2).toUpperCase() : 'U'
   const profileLabel = user?.perfil
@@ -118,12 +130,6 @@ export function AppHeader() {
             <DropdownMenuContent className="w-80" align="end">
               <DropdownMenuLabel className="flex justify-between items-center">
                 <span>Notificações</span>
-                <Link
-                  to="/notificacoes"
-                  className="text-xs text-primary hover:underline font-normal"
-                >
-                  Ver todas
-                </Link>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <ScrollArea className="h-[300px]">
@@ -137,7 +143,7 @@ export function AppHeader() {
                     return (
                       <DropdownMenuItem
                         key={n.id}
-                        className="flex flex-col items-start p-3 cursor-pointer"
+                        className="flex flex-col items-start p-3 cursor-pointer relative group"
                         onClick={() => n.link && navigate(n.link)}
                       >
                         <div className="flex items-center gap-2 w-full">
@@ -152,15 +158,45 @@ export function AppHeader() {
                           </span>
                         </div>
                         <p
-                          className={`text-xs mt-1 line-clamp-2 ${!n.lida ? 'text-foreground/80' : 'text-muted-foreground'}`}
+                          className={`text-xs mt-1 line-clamp-2 ${!n.lida ? 'text-foreground/80' : 'text-muted-foreground'} pr-6`}
                         >
                           {n.mensagem}
                         </p>
+                        {!n.lida && (
+                          <div
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                            onClick={(e) => markAsRead(n.id, e)}
+                            title="Marcar como lida"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          </div>
+                        )}
                       </DropdownMenuItem>
                     )
                   })
                 )}
               </ScrollArea>
+              {notificacoes.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <div className="p-2 flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="w-full text-xs h-8 text-gray-600 bg-gray-100 hover:bg-gray-200"
+                      onClick={clearAll}
+                    >
+                      Limpar Todas
+                    </Button>
+                    <Button
+                      variant="default"
+                      className="w-full text-xs h-8 bg-green-600 hover:bg-green-700"
+                      onClick={() => navigate('/notificacoes')}
+                    >
+                      Ver Todas
+                    </Button>
+                  </div>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 

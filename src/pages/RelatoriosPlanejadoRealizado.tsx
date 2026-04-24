@@ -139,7 +139,6 @@ export default function RelatoriosPlanejadoRealizado() {
 
   const exportarPdf = async () => {
     if (!dataInicio || !dataFim || !data || data.empty) return
-    setIsExporting(true)
     try {
       const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
       const chartImg = captureChart(chartRef)
@@ -245,8 +244,127 @@ export default function RelatoriosPlanejadoRealizado() {
         style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
         duration: 5000,
       })
-    } finally {
-      setIsExporting(false)
+    }
+  }
+
+  const exportarExcel = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToExcel } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      let rowsData = []
+      if (agrupamento === 'categoria') {
+        rowsData = [
+          ['Categoria', 'Tipo', 'Planejado', 'Realizado', 'Diferença', 'Variação %'],
+          ...data.rows.map((row: any) => [
+            row.name,
+            row.tipoCat,
+            row.planejado,
+            row.realizado,
+            row.diff,
+            row.perc,
+          ]),
+        ]
+      } else {
+        rowsData = [
+          [
+            'Nome',
+            'Receitas Plan',
+            'Receitas Real',
+            'Receitas Diff',
+            'Despesas Plan',
+            'Despesas Real',
+            'Despesas Diff',
+            'Resultado Plan',
+            'Resultado Real',
+            'Resultado Diff',
+          ],
+          ...data.rows.map((row: any) => [
+            row.name,
+            row.planejadoRec,
+            row.realizadoRec,
+            row.realizadoRec - row.planejadoRec,
+            -row.planejadoDes,
+            -row.realizadoDes,
+            -(row.realizadoDes - row.planejadoDes),
+            row.planejadoRec - row.planejadoDes,
+            row.realizadoRec - row.realizadoDes,
+            row.diff,
+          ]),
+        ]
+      }
+
+      const sheets = [
+        {
+          name: 'PlanejadoRealizado',
+          data: rowsData,
+        },
+      ]
+
+      exportToExcel(`PlanejadoRealizado_${year}_${startMonth}_a_${endMonth}.xls`, sheets)
+      toast.success('Excel gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar Excel')
+    }
+  }
+
+  const exportarCsv = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToCsv } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      let rowsData = []
+      if (agrupamento === 'categoria') {
+        rowsData = [
+          ['Categoria', 'Tipo', 'Planejado', 'Realizado', 'Diferença', 'Variação %'],
+          ...data.rows.map((row: any) => [
+            row.name,
+            row.tipoCat,
+            row.planejado,
+            row.realizado,
+            row.diff,
+            row.perc,
+          ]),
+        ]
+      } else {
+        rowsData = [
+          [
+            'Nome',
+            'Receitas Plan',
+            'Receitas Real',
+            'Receitas Diff',
+            'Despesas Plan',
+            'Despesas Real',
+            'Despesas Diff',
+            'Resultado Plan',
+            'Resultado Real',
+            'Resultado Diff',
+          ],
+          ...data.rows.map((row: any) => [
+            row.name,
+            row.planejadoRec,
+            row.realizadoRec,
+            row.realizadoRec - row.planejadoRec,
+            -row.planejadoDes,
+            -row.realizadoDes,
+            -(row.realizadoDes - row.planejadoDes),
+            row.planejadoRec - row.planejadoDes,
+            row.realizadoRec - row.realizadoDes,
+            row.diff,
+          ]),
+        ]
+      }
+
+      exportToCsv(`PlanejadoRealizado_${year}_${startMonth}_a_${endMonth}.csv`, rowsData)
+      toast.success('CSV gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar CSV')
     }
   }
 
@@ -293,19 +411,12 @@ export default function RelatoriosPlanejadoRealizado() {
           >
             Gerar Relatório
           </Button>
-          <Button
-            variant="outline"
-            onClick={exportarPdf}
-            disabled={isExporting || loading || !data || data.empty}
-            className="h-[44px]"
-          >
-            {isExporting ? (
-              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Exportar PDF
-          </Button>
+          <ExportDropdown
+            disabled={loading || !data || data.empty}
+            onExportPdf={exportarPdf}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+          />
         </div>
       </div>
 

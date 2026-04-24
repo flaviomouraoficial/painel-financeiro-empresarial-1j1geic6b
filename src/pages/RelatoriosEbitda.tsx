@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
 import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { ExportDropdown } from '@/components/ExportDropdown'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -126,7 +127,6 @@ export default function RelatoriosEbitda() {
 
   const exportarPdf = async () => {
     if (!dataInicio || !dataFim || !data || data.empty) return
-    setIsExporting(true)
     try {
       const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
       const chartImg = captureChart(chartRef)
@@ -190,8 +190,65 @@ export default function RelatoriosEbitda() {
         style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
         duration: 5000,
       })
-    } finally {
-      setIsExporting(false)
+    }
+  }
+
+  const exportarExcel = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToExcel } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      const sheets = [
+        {
+          name: 'EBITDA',
+          data: [
+            ['Descrição', 'Valor'],
+            ['Receita Bruta', data.receitaBruta],
+            ['Custos Diretos', -data.custosDiretos],
+            ['Lucro Bruto', data.lucroBruto],
+            ['Despesas Operacionais', -data.despesasOperacionais],
+            ['EBITDA', data.ebitda],
+            ['Margem EBITDA', `${data.margem.toFixed(2)}%`],
+          ],
+        },
+        {
+          name: 'Mensal',
+          data: [
+            ['Mês', 'Receita', 'Despesa', 'EBITDA'],
+            ...data.chartData.map((d: any) => [d.month, d.receita, d.despesa, d.ebitda]),
+          ],
+        },
+      ]
+
+      exportToExcel(`EBITDA_${year}_${startMonth}_a_${endMonth}.xls`, sheets)
+      toast.success('Excel gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar Excel')
+    }
+  }
+
+  const exportarCsv = async () => {
+    if (!dataInicio || !dataFim || !data || data.empty) return
+    try {
+      const { exportToCsv } = await import('@/lib/export-utils')
+      const year = format(new Date(dataInicio), 'yyyy')
+      const startMonth = format(new Date(dataInicio), 'MM')
+      const endMonth = format(new Date(dataFim), 'MM')
+
+      exportToCsv(`EBITDA_${year}_${startMonth}_a_${endMonth}.csv`, [
+        ['Descrição', 'Valor'],
+        ['Receita Bruta', data.receitaBruta],
+        ['Custos Diretos', -data.custosDiretos],
+        ['Lucro Bruto', data.lucroBruto],
+        ['Despesas Operacionais', -data.despesasOperacionais],
+        ['EBITDA', data.ebitda],
+      ])
+      toast.success('CSV gerado com sucesso')
+    } catch (err) {
+      toast.error('Erro ao gerar CSV')
     }
   }
 
@@ -224,19 +281,12 @@ export default function RelatoriosEbitda() {
           <Button onClick={fetchEbitda} className="bg-[#268C83] hover:bg-teal-700 text-white">
             Gerar Relatório
           </Button>
-          <Button
-            variant="outline"
-            onClick={exportarPdf}
-            disabled={isExporting || loading || !data || data.empty}
-            className="h-[44px]"
-          >
-            {isExporting ? (
-              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Exportar PDF
-          </Button>
+          <ExportDropdown
+            disabled={loading || !data || data.empty}
+            onExportPdf={exportarPdf}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+          />
         </div>
       </div>
 

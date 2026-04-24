@@ -27,6 +27,8 @@ import { ContasPagarDashboard } from '@/components/contas-pagar/dashboard'
 import { ContasPagarTable } from '@/components/contas-pagar/table'
 import { ContaForm } from '@/components/contas-pagar/conta-form'
 import { PagarModal } from '@/components/contas-pagar/pagar-modal'
+import { ExportDropdown } from '@/components/ExportDropdown'
+import { format, parseISO } from 'date-fns'
 
 export default function ContasPagar() {
   const { user } = useAuth()
@@ -80,6 +82,97 @@ export default function ContasPagar() {
     }
   }
 
+  const formatBRL = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+  const formatD = (d: string) => {
+    try {
+      return format(parseISO(d), 'dd/MM/yyyy')
+    } catch {
+      return d
+    }
+  }
+
+  const exportarPdf = async () => {
+    if (filteredContas.length === 0) return
+    const { exportToPdf } = await import('@/lib/pdf-export')
+
+    const tableHtml = `
+      <table class="pdf-table">
+        <thead>
+          <tr>
+            <th>Fornecedor</th>
+            <th>Descrição</th>
+            <th style="text-align: right">Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredContas
+            .map(
+              (item) => `
+            <tr>
+              <td>${item.expand?.fornecedor_id?.nome || '-'}</td>
+              <td>${item.descricao || '-'}</td>
+              <td style="text-align: right">${formatBRL(item.valor_total)}</td>
+              <td>${formatD(item.data_vencimento)}</td>
+              <td>${item.status.toUpperCase()}</td>
+            </tr>
+          `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: `Contas_Pagar_${format(new Date(), 'yyyy_MM_dd')}.pdf`,
+      title: 'Relatório de Contas a Pagar',
+      period: `${filters.data_inicio ? formatD(filters.data_inicio) : 'Início'} a ${filters.data_fim ? formatD(filters.data_fim) : 'Fim'}`,
+      filters: `Status: ${filters.status} | Fornecedor: ${filters.fornecedor_id}`,
+      tableHtml,
+      orientation: 'landscape',
+    })
+  }
+
+  const exportarExcel = async () => {
+    if (filteredContas.length === 0) return
+    const { exportToExcel } = await import('@/lib/export-utils')
+
+    const data = [
+      ['Fornecedor', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+      ...filteredContas.map((item) => [
+        item.expand?.fornecedor_id?.nome || '-',
+        item.descricao || '-',
+        item.valor_total,
+        formatD(item.data_vencimento),
+        item.status.toUpperCase(),
+      ]),
+    ]
+
+    exportToExcel(`Contas_Pagar_${format(new Date(), 'yyyy_MM_dd')}.xls`, [
+      { name: 'Contas a Pagar', data },
+    ])
+  }
+
+  const exportarCsv = async () => {
+    if (filteredContas.length === 0) return
+    const { exportToCsv } = await import('@/lib/export-utils')
+
+    const data = [
+      ['Fornecedor', 'Descrição', 'Valor', 'Vencimento', 'Status'],
+      ...filteredContas.map((item) => [
+        item.expand?.fornecedor_id?.nome || '-',
+        item.descricao || '-',
+        item.valor_total,
+        formatD(item.data_vencimento),
+        item.status.toUpperCase(),
+      ]),
+    ]
+
+    exportToCsv(`Contas_Pagar_${format(new Date(), 'yyyy_MM_dd')}.csv`, data)
+  }
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6 animate-fade-in">
       <div className="flex items-center justify-between space-y-2">
@@ -87,14 +180,22 @@ export default function ContasPagar() {
           <h2 className="text-3xl font-bold tracking-tight text-primary">Contas a Pagar</h2>
           <p className="text-muted-foreground">Acompanhe seus pagamentos pendentes</p>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedConta(null)
-            setFormOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Nova Conta
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExportDropdown
+            disabled={filteredContas.length === 0}
+            onExportPdf={exportarPdf}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+          />
+          <Button
+            onClick={() => {
+              setSelectedConta(null)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nova Conta
+          </Button>
+        </div>
       </div>
 
       <ContasPagarDashboard contas={contas} />

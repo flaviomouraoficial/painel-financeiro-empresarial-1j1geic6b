@@ -19,7 +19,7 @@ onRecordAfterCreateSuccess((e) => {
     notif.set('titulo', 'Novo Lançamento')
     notif.set(
       'mensagem',
-      `Um novo lançamento de ${e.record.getString('tipo')} no valor de R$ ${e.record.getFloat('valor').toFixed(2)} foi registrado.`,
+      `Novo lançamento: ${e.record.getString('descricao') || e.record.getString('tipo')} de R$ ${e.record.getFloat('valor').toFixed(2)}`,
     )
     notif.set('icone', 'Activity')
     notif.set('cor', 'teal')

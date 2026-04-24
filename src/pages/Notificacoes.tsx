@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Trash,
   Check,
@@ -13,6 +28,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 const IconMap: Record<string, any> = { AlertTriangle, CheckCircle, Activity, TrendingDown, Bell }
 const ColorMap: Record<string, string> = {
@@ -23,10 +39,19 @@ const ColorMap: Record<string, string> = {
   orange: 'text-orange-500',
 }
 
+const TypeLabels: Record<string, string> = {
+  alerta_financeiro: 'Alerta Financeiro',
+  alerta_fluxo_caixa: 'Alerta de Fluxo de Caixa',
+  recebimento: 'Recebimento',
+  pagamento: 'Pagamento',
+  lancamento: 'Lançamento',
+}
+
 export default function NotificacoesPage() {
   const { user } = useAuth()
   const [notificacoes, setNotificacoes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterType, setFilterType] = useState('todas')
 
   const fetchNotificacoes = async () => {
     if (!user?.empresa_id) return
@@ -42,6 +67,12 @@ export default function NotificacoesPage() {
     fetchNotificacoes()
   }, [user?.empresa_id])
 
+  useRealtime('notificacoes', (e) => {
+    if (e.record.usuario_id === user?.id) {
+      fetchNotificacoes()
+    }
+  })
+
   const markAllAsRead = async () => {
     const unread = notificacoes.filter((n) => !n.lida)
     await Promise.all(unread.map((n) => pb.collection('notificacoes').update(n.id, { lida: true })))
@@ -53,79 +84,159 @@ export default function NotificacoesPage() {
     fetchNotificacoes()
   }
 
+  const filteredNotificacoes = notificacoes.filter((n) => {
+    if (filterType !== 'todas' && n.tipo !== filterType) return false
+    return true
+  })
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-primary">Central de Notificações</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={markAllAsRead}>
-            <Check className="mr-2 h-4 w-4" /> Marcar lidas
+        <div>
+          <h1 className="text-2xl font-bold text-primary">Central de Notificações</h1>
+          <p className="text-muted-foreground text-sm">Gerencie todos os seus alertas e avisos</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              <SelectItem value="alerta_financeiro">Alerta Financeiro</SelectItem>
+              <SelectItem value="alerta_fluxo_caixa">Alerta de Caixa</SelectItem>
+              <SelectItem value="recebimento">Recebimentos</SelectItem>
+              <SelectItem value="pagamento">Pagamentos</SelectItem>
+              <SelectItem value="lancamento">Lançamentos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            onClick={markAllAsRead}
+          >
+            <Check className="mr-2 h-4 w-4" /> Marcar todas lidas
           </Button>
-          <Button variant="destructive" onClick={deleteAll}>
+          <Button
+            variant="outline"
+            className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+            onClick={deleteAll}
+          >
             <Trash className="mr-2 h-4 w-4" /> Limpar todas
           </Button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-8">Carregando...</div>
-      ) : (
-        <div className="space-y-4">
-          {notificacoes.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhuma notificação encontrada.
-            </p>
-          ) : (
-            notificacoes.map((n) => {
-              const Icon = IconMap[n.icone] || Bell
-              return (
-                <Card
-                  key={n.id}
-                  className={`transition-all ${n.lida ? 'opacity-60 bg-muted/50' : 'border-l-4 border-l-primary shadow-sm'}`}
-                >
-                  <CardContent className="p-4 flex gap-4 items-start">
-                    <div className={`mt-1 ${ColorMap[n.cor] || 'text-primary'}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between">
-                        <h3 className={`font-semibold ${!n.lida && 'text-foreground'}`}>
-                          {n.titulo}
-                        </h3>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(n.created), 'dd/MM/yyyy HH:mm')}
-                        </span>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Tipo</TableHead>
+              <TableHead>Mensagem</TableHead>
+              <TableHead className="w-[160px]">Data / Hora</TableHead>
+              <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead className="text-right w-[120px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            ) : filteredNotificacoes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-48 text-center">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <Bell className="h-12 w-12 mb-4 opacity-20" />
+                    <p>Nenhuma notificação encontrada.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredNotificacoes.map((n) => {
+                const Icon = IconMap[n.icone] || Bell
+                return (
+                  <TableRow
+                    key={n.id}
+                    className={cn(
+                      !n.lida ? 'bg-muted/30 font-medium' : 'opacity-70',
+                      'transition-colors',
+                    )}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Icon className={cn('h-4 w-4', ColorMap[n.cor] || 'text-primary')} />
+                        <span>{TypeLabels[n.tipo] || n.tipo}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{n.mensagem}</p>
-                      {n.link && (
-                        <a
-                          href={n.link}
-                          className="text-xs text-primary hover:underline mt-2 inline-block"
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <span className={cn('block', !n.lida && 'text-foreground')}>
+                          {n.titulo}
+                        </span>
+                        <span className="text-sm text-muted-foreground block mt-0.5">
+                          {n.mensagem}
+                        </span>
+                        {n.link && (
+                          <a
+                            href={n.link}
+                            className="text-xs text-primary hover:underline mt-1 inline-block"
+                          >
+                            Acessar link
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(n.created), 'dd/MM/yyyy HH:mm')}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={cn(
+                          'px-2 py-1 rounded-full text-xs',
+                          n.lida ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700',
+                        )}
+                      >
+                        {n.lida ? 'Lida' : 'Não lida'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {!n.lida && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Marcar como lida"
+                          className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={async () => {
+                            await pb.collection('notificacoes').update(n.id, { lida: true })
+                            fetchNotificacoes()
+                          }}
                         >
-                          Visualizar detalhes
-                        </a>
+                          <Check className="h-4 w-4" />
+                        </Button>
                       )}
-                    </div>
-                    {!n.lida && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Marcar como lida"
+                        title="Deletar"
+                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                         onClick={async () => {
-                          await pb.collection('notificacoes').update(n.id, { lida: true })
+                          await pb.collection('notificacoes').delete(n.id)
                           fetchNotificacoes()
                         }}
                       >
-                        <Check className="h-4 w-4 text-muted-foreground" />
+                        <Trash className="h-4 w-4" />
                       </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })
-          )}
-        </div>
-      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
