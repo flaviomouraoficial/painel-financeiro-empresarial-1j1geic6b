@@ -100,6 +100,12 @@ export function LancamentosForm({
     }
 
     if (isValorInvalid) {
+      toast({
+        title: 'Erro',
+        description: 'O valor deve ser maior que zero',
+        variant: 'destructive',
+        duration: 5000,
+      })
       return
     }
 
@@ -110,9 +116,9 @@ export function LancamentosForm({
         valor: valorNum,
         data_lancamento: `${formData.data_lancamento} 12:00:00.000Z`,
         conta_bancaria_id:
-          showConta && formData.conta_bancaria_id !== 'none' ? formData.conta_bancaria_id : null,
+          showConta && formData.conta_bancaria_id !== 'none' ? formData.conta_bancaria_id : '',
         cartao_credito_id:
-          showCartao && formData.cartao_credito_id !== 'none' ? formData.cartao_credito_id : null,
+          showCartao && formData.cartao_credito_id !== 'none' ? formData.cartao_credito_id : '',
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -326,7 +332,7 @@ export function LancamentosForm({
         )}
       </div>
 
-      <div className="flex justify-end gap-[12px] pt-4">
+      <div className="flex justify-end gap-[16px] pt-4">
         <Button
           type="button"
           variant="outline"
@@ -338,7 +344,7 @@ export function LancamentosForm({
         </Button>
         <Button
           type="submit"
-          disabled={loading || isValorInvalid}
+          disabled={loading}
           className="h-[44px] px-[20px] rounded-[8px] text-[14px] bg-[#268C83] hover:bg-[#1e736c] text-white border-transparent"
         >
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
