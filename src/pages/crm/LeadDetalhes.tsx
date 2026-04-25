@@ -49,6 +49,7 @@ import { ExportButtons } from '@/components/crm/export-buttons'
 import { cn } from '@/lib/utils'
 import { exportToCsv, exportToExcel } from '@/lib/export-utils'
 import { exportToPdf } from '@/lib/pdf-export'
+import { useRealtime } from '@/hooks/use-realtime'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
@@ -142,6 +143,12 @@ export default function LeadDetalhes() {
   useEffect(() => {
     loadData()
   }, [id])
+
+  useRealtime('interacoes_leads', (e) => {
+    if (e.record.lead_id === id) {
+      loadData()
+    }
+  })
 
   const handleProbabilityChange = async (val: number) => {
     if (!lead) return
@@ -252,7 +259,6 @@ export default function LeadDetalhes() {
 
     formData.set('resumo', resumo)
     formData.append('lead_id', lead.id)
-    formData.append('empresa_id', user.empresa_id)
     formData.append('usuario_id', user.id)
 
     const file = formData.get('arquivo') as File
@@ -260,17 +266,17 @@ export default function LeadDetalhes() {
 
     try {
       await pb.collection('interacoes_leads').create(formData)
-      await pb
-        .collection('leads')
-        .update(lead.id, { data_ultimo_contato: formData.get('data_interacao') })
-      toast({ title: 'Interação registrada' })
+      toast({
+        title: 'Interação registrada com sucesso',
+        className: 'bg-green-600 text-white border-none',
+      })
       e.currentTarget.reset()
       setTipoInteracao('ligacao')
       loadData()
     } catch (err: any) {
+      console.error('Erro do PocketBase:', err)
       toast({
-        title: 'Erro ao registrar interação',
-        description: err.message,
+        title: 'Erro ao registrar interação. Verifique as permissões ou campos obrigatórios.',
         variant: 'destructive',
       })
     } finally {
@@ -311,7 +317,6 @@ export default function LeadDetalhes() {
 
     try {
       formData.append('lead_id', lead.id)
-      formData.append('empresa_id', user.empresa_id)
       formData.append('usuario_id', user.id)
       formData.append('data_upload', new Date().toISOString())
 
