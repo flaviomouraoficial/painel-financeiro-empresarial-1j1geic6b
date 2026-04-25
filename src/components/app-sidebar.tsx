@@ -42,7 +42,7 @@ const navGroups = [
     title: 'CRM',
     icon: Target,
     items: [
-      { title: 'Funil de Vendas', url: '/crm/funil' },
+      { title: 'Funil de Vendas', url: '/crm/funil-vendas' },
       { title: 'Leads', url: '/crm/leads' },
     ],
   },

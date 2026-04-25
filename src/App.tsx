@@ -71,7 +71,8 @@ const App = () => (
               path="/relatorios/planejado-realizado"
               element={<RelatoriosPlanejadoRealizado />}
             />
-            <Route path="/crm/funil" element={<Funil />} />
+            <Route path="/crm/funil-vendas" element={<Funil />} />
+            <Route path="/crm/funil" element={<Navigate to="/crm/funil-vendas" replace />} />
             <Route path="/crm/leads" element={<Leads />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
