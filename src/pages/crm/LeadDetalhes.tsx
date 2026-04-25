@@ -232,8 +232,9 @@ export default function LeadDetalhes() {
 
   const handleInteractionSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget
     setIsSubmittingInteraction(true)
-    const formData = new FormData(e.currentTarget)
+    const formData = new FormData(form)
     const tipoRaw = (formData.get('tipo') as string) || tipoInteracao
     const tipo = tipoRaw
       .toLowerCase()
@@ -305,7 +306,7 @@ export default function LeadDetalhes() {
         title: 'Interação registrada com sucesso',
         className: 'bg-green-600 text-white border-none',
       })
-      e.currentTarget.reset()
+      form.reset()
       setTipoInteracao('ligacao')
       loadData()
     } catch (err: any) {
@@ -333,7 +334,8 @@ export default function LeadDetalhes() {
 
   const handleUploadDoc = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    const form = e.currentTarget
+    const formData = new FormData(form)
     const file = formData.get('arquivo') as File
     if (!file || file.size === 0) {
       toast({ title: 'Selecione um arquivo', variant: 'destructive' })
@@ -358,7 +360,7 @@ export default function LeadDetalhes() {
 
       await pb.collection('documentos_leads').create(formData)
       toast({ title: 'Documento salvo com sucesso' })
-      e.currentTarget.reset()
+      form.reset()
       loadData()
     } catch (error) {
       toast({ title: 'Erro ao salvar', variant: 'destructive' })
