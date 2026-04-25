@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T21:02:42.910Z",
+  "generatedAt": "2026-04-25T13:54:37.563Z",
   "collections": [
     {
       "name": "users",
@@ -1819,6 +1819,369 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "leads",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "delete": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "empresa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "empresas"
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome_lead",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "empresa_lead",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "servico_produto_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "produtos_servicos"
+        },
+        {
+          "name": "cliente_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clientes"
+        },
+        {
+          "name": "consultor_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valor_estimado",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "etapa",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "prospecção",
+            "contato",
+            "briefing",
+            "proposta",
+            "apresentação",
+            "análise",
+            "fechou",
+            "não fechou"
+          ]
+        },
+        {
+          "name": "probabilidade_fechamento",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "temperatura",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["quente", "morna", "fria"]
+        },
+        {
+          "name": "data_ultimo_contato",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_leads_empresa ON leads (empresa_id)",
+        "CREATE INDEX idx_leads_usuario ON leads (usuario_id)",
+        "CREATE INDEX idx_leads_consultor ON leads (consultor_id)",
+        "CREATE INDEX idx_leads_etapa ON leads (etapa)",
+        "CREATE INDEX idx_leads_temperatura ON leads (temperatura)",
+        "CREATE INDEX idx_leads_created ON leads (created)",
+        "CREATE UNIQUE INDEX idx_leads_email_unique ON leads (email) WHERE email != ''"
+      ]
+    },
+    {
+      "name": "interacoes_leads",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "delete": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "lead_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "leads"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ligacao", "email", "reuniao", "whatsapp", "documento"]
+        },
+        {
+          "name": "data_interacao",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "duracao_minutos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "resumo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "arquivo_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_interacoes_lead ON interacoes_leads (lead_id)",
+        "CREATE INDEX idx_interacoes_tipo ON interacoes_leads (tipo)",
+        "CREATE INDEX idx_interacoes_data ON interacoes_leads (data_interacao)"
+      ]
+    },
+    {
+      "name": "documentos_leads",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
+        "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
+        "delete": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')"
+      },
+      "fields": [
+        {
+          "name": "lead_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "leads"
+        },
+        {
+          "name": "tipo_documento",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["proposta", "contrato", "briefing", "apresentacao", "outro"]
+        },
+        {
+          "name": "nome_arquivo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "url_arquivo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_upload",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_documentos_lead ON documentos_leads (lead_id)",
+        "CREATE INDEX idx_documentos_tipo ON documentos_leads (tipo_documento)"
+      ]
+    },
+    {
+      "name": "etapas_funil",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.perfil = 'admin'",
+        "update": "@request.auth.perfil = 'admin'",
+        "delete": "@request.auth.perfil = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "empresa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "empresas"
+        },
+        {
+          "name": "nome_etapa",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_etapas_empresa ON etapas_funil (empresa_id)",
+        "CREATE INDEX idx_etapas_ordem ON etapas_funil (ordem)"
+      ]
     }
   ]
 }
