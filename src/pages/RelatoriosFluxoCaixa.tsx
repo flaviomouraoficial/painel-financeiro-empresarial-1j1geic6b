@@ -13,7 +13,16 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/format'
-import { LineChart, Line, XAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ComposedChart,
+  Bar,
+} from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Download, AlertCircle, FileX2, TrendingUp, TrendingDown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addDays } from 'date-fns'
@@ -148,6 +157,37 @@ export default function RelatoriosFluxoCaixa() {
           return { date: day.date, projetado: runningProjetado, realizado: runningRealizado }
         })
 
+      const monthlyStats: Record<string, { in: number; out: number }> = {}
+      lancamentos.forEach((l) => {
+        if (l.status !== 'confirmado') return
+        const m = l.data_lancamento.substring(0, 7)
+        if (!monthlyStats[m]) monthlyStats[m] = { in: 0, out: 0 }
+        if (l.tipo === 'receita') monthlyStats[m].in += l.valor
+        else monthlyStats[m].out += l.valor
+      })
+      const months = Object.keys(monthlyStats)
+      let avgIn = 0
+      let avgOut = 0
+      if (months.length > 0) {
+        avgIn = months.reduce((acc, m) => acc + monthlyStats[m].in, 0) / months.length
+        avgOut = months.reduce((acc, m) => acc + monthlyStats[m].out, 0) / months.length
+      }
+
+      const projectionData = []
+      let currentProjBalanceValue = saldoInicialPeriodo + projetadoEntradas - projetadoSaidas
+      let projDate = new Date(dataFim + 'T00:00:00')
+      for (let i = 1; i <= 3; i++) {
+        projDate = addDays(endOfMonth(projDate), 1)
+        const monthStr = format(projDate, 'MMM/yy')
+        currentProjBalanceValue += avgIn - avgOut
+        projectionData.push({
+          month: monthStr,
+          receitas: avgIn,
+          despesas: avgOut,
+          saldo: currentProjBalanceValue,
+        })
+      }
+
       setData({
         empty: false,
         saldoInicial: saldoInicialPeriodo,
@@ -158,6 +198,7 @@ export default function RelatoriosFluxoCaixa() {
         saldoFinalProjetado: saldoInicialPeriodo + projetadoEntradas - projetadoSaidas,
         saldoFinalRealizado: saldoInicialPeriodo + realizadoEntradas - realizadoSaidas,
         chartData,
+        projectionData,
       })
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados.')
@@ -457,6 +498,54 @@ export default function RelatoriosFluxoCaixa() {
                 )}
                 Variação do Previsto
               </div>
+            </CardContent>
+          </Card>
+          <Card className="md:col-span-3 mt-6">
+            <CardHeader>
+              <CardTitle>Tendência de Caixa (Próximos 3 Meses)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  receitas: { label: 'Receitas Médias', color: '#10B981' },
+                  despesas: { label: 'Despesas Médias', color: '#EF4444' },
+                  saldo: { label: 'Saldo Projetado', color: '#3B82F6' },
+                }}
+                className="h-[300px] w-full"
+              >
+                <ComposedChart
+                  data={data.projectionData}
+                  margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
+                  <RechartsTooltip
+                    content={
+                      <ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />
+                    }
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="receitas"
+                    fill="var(--color-receitas)"
+                    barSize={20}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="despesas"
+                    fill="var(--color-despesas)"
+                    barSize={20}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="saldo"
+                    stroke="var(--color-saldo)"
+                    strokeWidth={3}
+                    dot={{ r: 4 }}
+                  />
+                </ComposedChart>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>

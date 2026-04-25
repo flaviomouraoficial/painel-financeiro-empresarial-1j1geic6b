@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T19:42:57.359Z",
+  "generatedAt": "2026-04-25T19:49:54.854Z",
   "collections": [
     {
       "name": "users",
@@ -7,9 +7,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
         "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
-        "create": "@request.auth.perfil = 'admin'",
-        "update": "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
+        "create": "@request.auth.perfil = 'admin' || @request.auth.email = 'admin@trendconsultoria.com.br' || @request.auth.email = 'flavio@trendconsultoria.com.br'",
+        "update": "@request.auth.id != '' && (id = @request.auth.id || (@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id) || @request.auth.email = 'admin@trendconsultoria.com.br' || @request.auth.email = 'flavio@trendconsultoria.com.br')",
+        "delete": "@request.auth.id != '' && ((@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id) || @request.auth.email = 'admin@trendconsultoria.com.br' || @request.auth.email = 'flavio@trendconsultoria.com.br')"
       },
       "fields": [
         {
@@ -1034,8 +1034,8 @@
       "name": "lancamentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id)",
-        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id)",
+        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
         "create": "(@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id",
         "update": "(@request.auth.perfil != 'usuario' || usuario_id = @request.auth.id) && empresa_id = @request.auth.empresa_id",
         "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
@@ -1985,11 +1985,11 @@
       "name": "interacoes_leads",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && lead_id.empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && lead_id.empresa_id = @request.auth.empresa_id",
+        "create": "@request.auth.id != '' && lead_id.empresa_id = @request.auth.empresa_id",
+        "update": "@request.auth.id != '' && lead_id.empresa_id = @request.auth.empresa_id",
+        "delete": "@request.auth.id != '' && lead_id.empresa_id = @request.auth.empresa_id"
       },
       "fields": [
         {
