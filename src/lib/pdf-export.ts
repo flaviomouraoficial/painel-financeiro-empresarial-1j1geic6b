@@ -6,6 +6,7 @@ export async function exportToPdf({
   tableHtml,
   chartImages = [],
   orientation = 'portrait',
+  userName = 'Usuário',
 }: {
   filename: string
   title: string
@@ -14,6 +15,7 @@ export async function exportToPdf({
   tableHtml: string
   chartImages?: string[]
   orientation?: 'portrait' | 'landscape'
+  userName?: string
 }) {
   const printWindow = window.open('', '_blank')
   if (!printWindow) return
@@ -32,16 +34,16 @@ export async function exportToPdf({
         <style>
           @page { 
             size: A4 ${orientation}; 
-            margin: 15mm 15mm 20mm 15mm; 
+            margin: 20mm; 
             @bottom-right {
               content: "Página " counter(page) " de " counter(pages);
               font-size: 10px;
               color: #9ca3af;
-              font-family: 'Inter', Arial, sans-serif;
+              font-family: Arial, sans-serif;
             }
           }
           body { 
-            font-family: 'Inter', Arial, sans-serif; 
+            font-family: Arial, sans-serif; 
             font-size: 11px;
             color: #1f2937; 
             margin: 0;
@@ -61,36 +63,48 @@ export async function exportToPdf({
             padding: 15px 20px; 
             border-radius: 6px;
           }
-          .header-content {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+          .company-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: white !important;
+            margin: 0 0 4px 0;
+          }
+          .company-cnpj {
+            font-size: 11px;
+            color: #e0f2f1 !important;
+            margin: 0;
+          }
+          .logo { height: 40px; object-fit: contain; max-width: 150px; }
+          
+          .report-header {
+            margin-bottom: 20px;
           }
           .title { 
             font-size: 18px; 
             font-weight: bold; 
-            color: white !important; 
-            margin: 0; 
+            color: #268C83 !important; 
+            margin: 0 0 8px 0; 
             text-transform: uppercase;
           }
-          .company-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: #e0f2f1 !important;
-            margin: 0 0 4px 0;
-          }
           .period, .filters { 
-            color: #ccfbf1 !important; 
-            margin: 0; 
+            color: #6b7280 !important; 
+            margin: 0 0 4px 0; 
             font-size: 11px; 
           }
           .filters { font-style: italic; }
-          .logo { height: 40px; object-fit: contain; max-width: 150px; }
+          
+          h3 {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-top: 20px;
+            margin-bottom: 10px;
+          }
           
           table { 
             width: 100%; 
             border-collapse: collapse; 
-            margin-top: 15px; 
+            margin-top: 10px; 
             page-break-inside: auto;
             font-size: 11px;
           }
@@ -108,6 +122,7 @@ export async function exportToPdf({
             background-color: #268C83 !important; 
           }
           tbody tr:nth-child(even) { background-color: #f9fafb !important; }
+          tbody tr:nth-child(odd) { background-color: #ffffff !important; }
           .text-right { text-align: right; }
           .text-center { text-align: center; }
           .chart-container { 
@@ -122,14 +137,6 @@ export async function exportToPdf({
             height: auto;
             max-height: 350px;
             object-fit: contain;
-          }
-          .pdf-table {
-            table-layout: fixed;
-            word-wrap: break-word;
-          }
-          .pdf-table th, .pdf-table td {
-            overflow: hidden;
-            text-overflow: ellipsis;
           }
           .content {
             margin-bottom: 40px;
@@ -152,20 +159,23 @@ export async function exportToPdf({
       </head>
       <body>
         <div class="header">
-          <div class="header-content">
-            <h1 class="title">${title}</h1>
-            <p class="company-name">Trend Consultoria LTDA - CNPJ: 09.465.223/0001-07</p>
-            ${period ? `<p class="period">Período: ${period}</p>` : ''}
-            ${filters ? `<p class="filters">Filtros: ${filters}</p>` : ''}
+          <div>
+            <p class="company-name">Trend Consultoria LTDA</p>
+            <p class="company-cnpj">CNPJ: 09.465.223/0001-07</p>
           </div>
           <img class="logo" src="/Avatar-Branco.png" onerror="this.src='https://img.usecurling.com/i?q=company&color=white'" alt="Logo" />
+        </div>
+        <div class="report-header">
+          <h1 class="title">${title}</h1>
+          ${period ? `<p class="period">Período: ${period}</p>` : ''}
+          ${filters ? `<p class="filters">Filtros: ${filters}</p>` : ''}
         </div>
         <div class="content">
           ${chartsHtml}
           ${tableHtml}
         </div>
         <div class="footer">
-          Gerado em ${dateNow} por Trend Consultoria - Relatório gerado automaticamente pelo sistema de gestão financeira.
+          Gerado em ${dateNow} por ${userName} — Trend Consultoria
         </div>
         <script>
           window.onload = () => {

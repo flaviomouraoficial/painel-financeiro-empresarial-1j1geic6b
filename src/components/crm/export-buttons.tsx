@@ -38,7 +38,7 @@ export function ExportButtons({ onExportPdf, onExportExcel, onExportCsv }: Expor
     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
       <Button
         variant="outline"
-        className="h-10 bg-muted/30 hover:bg-muted text-muted-foreground w-full sm:w-auto"
+        className="h-10 bg-muted/50 hover:bg-muted text-muted-foreground w-full sm:w-auto"
         onClick={() => handleExport('pdf', onExportPdf)}
         disabled={!!loading}
       >
@@ -51,7 +51,7 @@ export function ExportButtons({ onExportPdf, onExportExcel, onExportCsv }: Expor
       </Button>
       <Button
         variant="outline"
-        className="h-10 bg-muted/30 hover:bg-muted text-muted-foreground w-full sm:w-auto"
+        className="h-10 bg-muted/50 hover:bg-muted text-muted-foreground w-full sm:w-auto"
         onClick={() => handleExport('excel', onExportExcel)}
         disabled={!!loading}
       >
@@ -64,7 +64,7 @@ export function ExportButtons({ onExportPdf, onExportExcel, onExportCsv }: Expor
       </Button>
       <Button
         variant="outline"
-        className="h-10 bg-muted/30 hover:bg-muted text-muted-foreground w-full sm:w-auto"
+        className="h-10 bg-muted/50 hover:bg-muted text-muted-foreground w-full sm:w-auto"
         onClick={() => handleExport('csv', onExportCsv)}
         disabled={!!loading}
       >

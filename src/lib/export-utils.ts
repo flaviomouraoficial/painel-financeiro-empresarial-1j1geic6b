@@ -53,7 +53,18 @@ export function exportToExcel(filename: string, sheets: { name: string; data: an
    <Interior ss:Color="#268C83" ss:Pattern="Solid"/>
    <Font ss:Color="#FFFFFF" ss:Bold="1"/>
   </Style>
-  <Style ss:ID="Currency">
+  <Style ss:ID="RowEven">
+   <Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="RowOdd">
+   <Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="CurrencyEven">
+   <Interior ss:Color="#F9FAFB" ss:Pattern="Solid"/>
+   <NumberFormat ss:Format='"R$"#,##0.00'/>
+  </Style>
+  <Style ss:ID="CurrencyOdd">
+   <Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>
    <NumberFormat ss:Format='"R$"#,##0.00'/>
   </Style>
  </Styles>
@@ -68,13 +79,31 @@ export function exportToExcel(filename: string, sheets: { name: string; data: an
         const cell = row[j]
         const isHeader = i === 0
         const isNumber = typeof cell === 'number'
-        const style = isHeader ? ' ss:StyleID="Header"' : isNumber ? ' ss:StyleID="Currency"' : ''
+        const isEven = i % 2 === 0
+
+        let style = ''
+        if (isHeader) {
+          style = ' ss:StyleID="Header"'
+        } else if (isNumber) {
+          style = isEven ? ' ss:StyleID="CurrencyEven"' : ' ss:StyleID="CurrencyOdd"'
+        } else {
+          style = isEven ? ' ss:StyleID="RowEven"' : ' ss:StyleID="RowOdd"'
+        }
+
         const type = isNumber ? 'Number' : 'String'
         xml += `    <Cell${style}><Data ss:Type="${type}">${escapeXml(cell)}</Data></Cell>\n`
       }
       xml += `   </Row>\n`
     }
-    xml += `  </Table>\n </Worksheet>\n`
+    xml += `  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <FreezePanes/>
+   <FrozenNoSplit/>
+   <SplitHorizontal>1</SplitHorizontal>
+   <TopRowBottomPane>1</TopRowBottomPane>
+   <ActivePane>2</ActivePane>
+  </WorksheetOptions>
+ </Worksheet>\n`
   }
   xml += `</Workbook>`
 

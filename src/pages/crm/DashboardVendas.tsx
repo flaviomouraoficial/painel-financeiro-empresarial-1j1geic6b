@@ -382,8 +382,26 @@ export default function DashboardVendas() {
   // Export Functions
   const getExportFilename = (ext: string) => {
     const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
-    const dateStr = format(new Date(), 'dd_MM_yyyy')
-    return `Dashboard_Vendas_${dateStr}_${userName}.${ext}`
+    const today = new Date()
+    let dInicio = ''
+    let dFim = format(today, 'dd_MM_yyyy')
+
+    if (periodFilter === 'all') {
+      dInicio = 'Inicio'
+    } else if (periodFilter === '7') {
+      dInicio = format(subDays(today, 7), 'dd_MM_yyyy')
+    } else if (periodFilter === '30') {
+      dInicio = format(subDays(today, 30), 'dd_MM_yyyy')
+    } else if (periodFilter === '90') {
+      dInicio = format(subDays(today, 90), 'dd_MM_yyyy')
+    } else if (periodFilter === 'year') {
+      dInicio = format(startOfYear(today), 'dd_MM_yyyy')
+    } else if (periodFilter === 'custom') {
+      dInicio = startDate ? format(parseISO(startDate), 'dd_MM_yyyy') : 'Inicio'
+      dFim = endDate ? format(parseISO(endDate), 'dd_MM_yyyy') : format(today, 'dd_MM_yyyy')
+    }
+
+    return `Dashboard_Vendas_${dInicio}_a_${dFim}_${userName}.${ext}`
   }
 
   const handleExportPdf = async () => {
@@ -438,6 +456,7 @@ export default function DashboardVendas() {
       filters: `Consultor: ${consultantFilter === 'all' ? 'Todos' : consultantFilter}, Temperatura: ${tempFilter}`,
       tableHtml,
       chartImages: [c1, c2, c3, c4].filter(Boolean) as string[],
+      userName: user?.name || 'Usuário',
     })
   }
 

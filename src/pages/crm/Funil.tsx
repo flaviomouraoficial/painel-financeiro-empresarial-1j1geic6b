@@ -186,8 +186,21 @@ export default function Funil() {
 
   const getExportFilename = (ext: string) => {
     const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
-    const dateStr = format(new Date(), 'dd_MM_yyyy')
-    return `Funil_Vendas_${dateStr}_${userName}.${ext}`
+    const today = new Date()
+    let dInicio = ''
+    let dFim = format(today, 'dd_MM_yyyy')
+
+    if (periodFilter === 'all') {
+      dInicio = 'Inicio'
+    } else if (periodFilter === '7') {
+      dInicio = format(subDays(today, 7), 'dd_MM_yyyy')
+    } else if (periodFilter === '30') {
+      dInicio = format(subDays(today, 30), 'dd_MM_yyyy')
+    } else if (periodFilter === '90') {
+      dInicio = format(subDays(today, 90), 'dd_MM_yyyy')
+    }
+
+    return `Funil_Vendas_${dInicio}_a_${dFim}_${userName}.${ext}`
   }
 
   const handleExportPdf = async () => {
@@ -221,6 +234,7 @@ export default function Funil() {
       period: periodFilter !== 'all' ? `Últimos ${periodFilter} dias` : 'Todo o período',
       filters: `Consultor: ${consultantFilter === 'all' ? 'Todos' : consultantFilter}, Temperatura: ${tempFilter}`,
       tableHtml,
+      userName: user?.name || 'Usuário',
     })
   }
 

@@ -388,8 +388,9 @@ export default function LeadDetalhes() {
   const getExportFilename = (ext: string) => {
     const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
     const leadName = lead?.nome_lead?.replace(/\s+/g, '_') || 'Lead'
-    const dateStr = format(new Date(), 'dd_MM_yyyy')
-    return `Detalhes_Lead_${leadName}_${dateStr}_${userName}.${ext}`
+    const dInicio = lead?.created ? format(parseISO(lead.created), 'dd_MM_yyyy') : 'Inicio'
+    const dFim = format(new Date(), 'dd_MM_yyyy')
+    return `Detalhes_Lead_${leadName}_${dInicio}_a_${dFim}_${userName}.${ext}`
   }
 
   const handleExportPdf = async () => {
@@ -428,6 +429,7 @@ export default function LeadDetalhes() {
       filename: getExportFilename('pdf'),
       title: `Detalhes do Lead: ${lead.nome_lead}`,
       tableHtml,
+      userName: user?.name || 'Usuário',
     })
   }
 
