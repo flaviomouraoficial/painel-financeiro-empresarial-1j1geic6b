@@ -233,7 +233,13 @@ export default function LeadDetalhes() {
     e.preventDefault()
     setIsSubmittingInteraction(true)
     const formData = new FormData(e.currentTarget)
-    const tipo = formData.get('tipo') as string
+    const tipoRaw = (formData.get('tipo') as string) || tipoInteracao
+    const tipo = tipoRaw
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+    formData.set('tipo', tipo)
+
     let resumo = (formData.get('resumo') as string) || ''
 
     if (tipo === 'ligacao') {
@@ -265,7 +271,21 @@ export default function LeadDetalhes() {
     if (file && file.size === 0) formData.delete('arquivo')
 
     try {
+      const dataInteracaoRaw = formData.get('data_interacao') as string
+      const dataInteracao = dataInteracaoRaw
+        ? new Date(dataInteracaoRaw).toISOString()
+        : new Date().toISOString()
+
       await pb.collection('interacoes_leads').create(formData)
+
+      try {
+        await pb.collection('leads').update(lead.id, {
+          data_ultimo_contato: dataInteracao,
+        })
+      } catch (leadErr) {
+        console.error('Erro ao atualizar data de último contato do lead:', leadErr)
+      }
+
       toast({
         title: 'Interação registrada com sucesso',
         className: 'bg-green-600 text-white border-none',
@@ -276,7 +296,7 @@ export default function LeadDetalhes() {
     } catch (err: any) {
       console.error('Erro do PocketBase:', err)
       toast({
-        title: 'Erro ao registrar interação. Verifique as permissões ou campos obrigatórios.',
+        title: 'erro ao registrar a interação. verifique as permissões ou campos obrigatórios',
         variant: 'destructive',
       })
     } finally {
@@ -731,7 +751,12 @@ export default function LeadDetalhes() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-muted-foreground">Tipo *</label>
-                    <Select name="tipo" value={tipoInteracao} onValueChange={setTipoInteracao}>
+                    <Select
+                      name="tipo"
+                      value={tipoInteracao}
+                      onValueChange={setTipoInteracao}
+                      required
+                    >
                       <SelectTrigger className="h-9 text-sm">
                         <SelectValue />
                       </SelectTrigger>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T14:53:19.672Z",
+  "generatedAt": "2026-04-25T14:57:14.136Z",
   "collections": [
     {
       "name": "users",
@@ -1985,11 +1985,11 @@
       "name": "interacoes_leads",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "create": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "delete": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')"
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
       },
       "fields": [
         {
