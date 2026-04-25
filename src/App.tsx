@@ -18,6 +18,7 @@ import RelatoriosFluxoCaixa from './pages/RelatoriosFluxoCaixa'
 import RelatoriosPlanejadoRealizado from './pages/RelatoriosPlanejadoRealizado'
 import RecibosDespesas from './pages/RecibosDespesas'
 import Funil from './pages/crm/Funil'
+import DashboardVendas from './pages/crm/DashboardVendas'
 import Leads from './pages/crm/Leads'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
@@ -72,6 +73,7 @@ const App = () => (
               path="/relatorios/planejado-realizado"
               element={<RelatoriosPlanejadoRealizado />}
             />
+            <Route path="/crm/dashboard-vendas" element={<DashboardVendas />} />
             <Route path="/crm/funil-vendas" element={<Funil />} />
             <Route path="/crm/funil" element={<Navigate to="/crm/funil-vendas" replace />} />
             <Route path="/crm/leads" element={<Leads />} />

@@ -103,13 +103,11 @@ export default function LeadDetalhes() {
     try {
       const [l, ints, d] = await Promise.all([
         pb.collection('leads').getOne(id, { expand: 'servico_produto_id,consultor_id,cliente_id' }),
-        pb
-          .collection('interacoes_leads')
-          .getFullList({
-            filter: `lead_id="${id}"`,
-            sort: '-data_interacao',
-            expand: 'usuario_id',
-          }),
+        pb.collection('interacoes_leads').getFullList({
+          filter: `lead_id="${id}"`,
+          sort: '-data_interacao',
+          expand: 'usuario_id',
+        }),
         pb
           .collection('documentos_leads')
           .getFullList({ filter: `lead_id="${id}"`, sort: '-created', expand: 'usuario_id' }),

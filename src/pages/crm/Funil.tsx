@@ -56,8 +56,14 @@ export default function Funil() {
       ])
       setLeads(l)
       if (e.length > 0) {
-        const uniqueEtapas = Array.from(new Set(e.map((et) => et.nome_etapa)))
-        setEtapas(uniqueEtapas)
+        const uniqueEtapasMap = new Map()
+        e.forEach((et) => {
+          const key = et.nome_etapa.toLowerCase().trim()
+          if (!uniqueEtapasMap.has(key)) {
+            uniqueEtapasMap.set(key, et.nome_etapa)
+          }
+        })
+        setEtapas(Array.from(uniqueEtapasMap.values()))
       } else {
         setEtapas(FALLBACK_ETAPAS)
       }
