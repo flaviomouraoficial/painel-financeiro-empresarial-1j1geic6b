@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T13:54:37.563Z",
+  "generatedAt": "2026-04-25T14:07:53.565Z",
   "collections": [
     {
       "name": "users",
@@ -1828,7 +1828,7 @@
         "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
         "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
         "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "delete": "@request.auth.id != '' && (usuario_id = @request.auth.id || @request.auth.perfil = 'admin')"
+        "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
       },
       "fields": [
         {
