@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLeads, getEtapasFunil, createInteracao } from '@/services/crm'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
-import { parseISO, differenceInDays, isAfter, subDays, startOfYear } from 'date-fns'
+import { useAuth } from '@/hooks/use-auth'
+import { parseISO, differenceInDays, isAfter, subDays, startOfYear, format } from 'date-fns'
 import {
   BarChart,
   Bar,
@@ -49,6 +50,9 @@ import {
   FolderOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ExportButtons } from '@/components/crm/export-buttons'
+import { exportToCsv, exportToExcel } from '@/lib/export-utils'
+import { exportToPdf, captureChart } from '@/lib/pdf-export'
 
 // Helpers
 const formatCurrency = (value: number) => {
@@ -150,6 +154,7 @@ function InteractionModal({ lead, isOpen, onClose, onSuccess }: any) {
 
 export default function DashboardVendas() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
   const [etapas, setEtapas] = useState<any[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -161,6 +166,11 @@ export default function DashboardVendas() {
   const [consultantFilter, setConsultantFilter] = useState('all')
   const [tempFilter, setTempFilter] = useState('all')
   const [interactionLead, setInteractionLead] = useState<any>(null)
+
+  const chart1Ref = useRef<HTMLDivElement>(null)
+  const chart2Ref = useRef<HTMLDivElement>(null)
+  const chart3Ref = useRef<HTMLDivElement>(null)
+  const chart4Ref = useRef<HTMLDivElement>(null)
 
   const loadData = async () => {
     try {
@@ -369,6 +379,140 @@ export default function DashboardVendas() {
     .map((l) => ({ ...l, daysInStage: differenceInDays(new Date(), parseISO(l.updated)) }))
     .sort((a, b) => b.daysInStage - a.daysInStage)
 
+  // Export Functions
+  const getExportFilename = (ext: string) => {
+    const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
+    const dateStr = format(new Date(), 'dd_MM_yyyy')
+    return `Dashboard_Vendas_${dateStr}_${userName}.${ext}`
+  }
+
+  const handleExportPdf = async () => {
+    const c1 = await captureChart(chart1Ref)
+    const c2 = await captureChart(chart2Ref)
+    const c3 = await captureChart(chart3Ref)
+    const c4 = await captureChart(chart4Ref)
+
+    const tableHtml = `
+      <h3 style="margin-top:0">Resumo de KPIs</h3>
+      <table>
+        <thead><tr><th>Métrica</th><th class="text-right">Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Total em Pipeline</td><td class="text-right">${formatCurrency(totalPipeline)}</td></tr>
+          <tr><td>Leads Quentes</td><td class="text-right">${hotLeadsCount}</td></tr>
+          <tr><td>Valor Previsto</td><td class="text-right">${formatCurrency(predictedValue)}</td></tr>
+          <tr><td>Taxa de Conversão</td><td class="text-right">${conversionRate.toFixed(1)}%</td></tr>
+        </tbody>
+      </table>
+      <br/>
+      <h3>Desempenho por Consultor</h3>
+      <table>
+        <thead><tr><th>Consultor</th><th>Leads (Aberto)</th><th>Leads Quentes</th><th>Valor Pipeline</th><th>Taxa Conversão</th><th>Valor Fechado</th></tr></thead>
+        <tbody>
+          ${consultantTableData
+            .map(
+              (c) =>
+                `<tr><td>${c.name}</td><td>${c.leadsCount}</td><td>${c.hotLeads}</td><td>${formatCurrency(c.pipelineValue)}</td><td>${c.conversionRate.toFixed(1)}%</td><td>${formatCurrency(c.closedValue)}</td></tr>`,
+            )
+            .join('')}
+        </tbody>
+      </table>
+      <br/>
+      <h3>Leads por Fechar (Próximos 30 dias)</h3>
+      <table>
+        <thead><tr><th>Lead</th><th>Etapa</th><th>Valor</th><th>Probabilidade</th><th>Dias na Etapa</th></tr></thead>
+        <tbody>
+          ${leadsToClose
+            .map(
+              (l) =>
+                `<tr><td>${l.nome_lead}</td><td>${l.etapa}</td><td>${formatCurrency(l.valor_estimado || 0)}</td><td>${l.probabilidade_fechamento || 0}%</td><td>${l.daysInStage}</td></tr>`,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: getExportFilename('pdf'),
+      title: 'Dashboard de Vendas',
+      period: periodFilter !== 'all' ? `Últimos ${periodFilter} dias` : 'Todo o período',
+      filters: `Consultor: ${consultantFilter === 'all' ? 'Todos' : consultantFilter}, Temperatura: ${tempFilter}`,
+      tableHtml,
+      chartImages: [c1, c2, c3, c4].filter(Boolean) as string[],
+    })
+  }
+
+  const handleExportExcel = async () => {
+    const leadsData = filteredLeads.map((l) => [
+      l.nome_lead,
+      l.empresa_lead || '',
+      l.etapa,
+      l.valor_estimado || 0,
+      l.probabilidade_fechamento || 0,
+      l.expand?.consultor_id?.name || '',
+      format(parseISO(l.created), 'dd/MM/yyyy'),
+    ])
+
+    const resumeData = [
+      ['Métrica', 'Valor'],
+      ['Total Pipeline', totalPipeline],
+      ['Leads Quentes', hotLeadsCount],
+      ['Valor Previsto', predictedValue],
+      ['Taxa de Conversão (%)', conversionRate.toFixed(1)],
+    ]
+
+    const filtersData = [
+      ['Filtro', 'Valor'],
+      ['Período', periodFilter],
+      ['Data Inicial', startDate],
+      ['Data Final', endDate],
+      ['Consultor', consultantFilter],
+      ['Temperatura', tempFilter],
+    ]
+
+    const metadataData = [
+      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm')],
+      ['Usuário', user?.name || 'Sistema'],
+      ['Empresa', 'Trend Consultoria'],
+    ]
+
+    exportToExcel(getExportFilename('xlsx'), [
+      {
+        name: 'Dados',
+        data: [
+          [
+            'Nome',
+            'Empresa',
+            'Etapa',
+            'Valor Estimado',
+            'Probabilidade',
+            'Consultor',
+            'Data Criação',
+          ],
+          ...leadsData,
+        ],
+      },
+      { name: 'Resumo', data: resumeData },
+      { name: 'Filtros', data: filtersData },
+      { name: 'Metadados', data: metadataData },
+    ])
+  }
+
+  const handleExportCsv = async () => {
+    const rows = [
+      ['Nome', 'Empresa', 'Etapa', 'Valor Estimado', 'Probabilidade', 'Consultor', 'Data Criação'],
+      ...filteredLeads.map((l) => [
+        l.nome_lead,
+        l.empresa_lead || '',
+        l.etapa,
+        l.valor_estimado || 0,
+        l.probabilidade_fechamento || 0,
+        l.expand?.consultor_id?.name || '',
+        format(parseISO(l.created), 'dd/MM/yyyy'),
+      ]),
+    ]
+    exportToCsv(getExportFilename('csv'), rows)
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 pb-12">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4">
@@ -379,70 +523,76 @@ export default function DashboardVendas() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3 bg-card p-3 rounded-lg border shadow-sm w-full xl:w-auto">
-          <div className="space-y-1 w-full sm:w-auto">
-            <Label className="text-xs text-muted-foreground">Período (Criação)</Label>
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="w-full sm:w-[140px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todo o período</SelectItem>
-                <SelectItem value="7">Últimos 7 dias</SelectItem>
-                <SelectItem value="30">Últimos 30 dias</SelectItem>
-                <SelectItem value="90">Últimos 90 dias</SelectItem>
-                <SelectItem value="year">Este Ano</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
+        <ExportButtons
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+          onExportCsv={handleExportCsv}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3 bg-card p-3 rounded-lg border shadow-sm w-full">
+        <div className="space-y-1 w-full sm:w-auto">
+          <Label className="text-xs text-muted-foreground">Período (Criação)</Label>
+          <Select value={periodFilter} onValueChange={setPeriodFilter}>
+            <SelectTrigger className="w-full sm:w-[140px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todo o período</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+              <SelectItem value="year">Este Ano</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {periodFilter === 'custom' && (
+          <div className="flex items-center gap-2 mb-[2px] w-full sm:w-auto">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-[130px] h-9"
+            />
+            <span className="text-muted-foreground text-xs">até</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-[130px] h-9"
+            />
           </div>
-          {periodFilter === 'custom' && (
-            <div className="flex items-center gap-2 mb-[2px] w-full sm:w-auto">
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-[130px] h-9"
-              />
-              <span className="text-muted-foreground text-xs">até</span>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-[130px] h-9"
-              />
-            </div>
-          )}
-          <div className="space-y-1 w-full sm:w-auto">
-            <Label className="text-xs text-muted-foreground">Consultor</Label>
-            <Select value={consultantFilter} onValueChange={setConsultantFilter}>
-              <SelectTrigger className="w-full sm:w-[150px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {usuarios.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1 w-full sm:w-auto">
-            <Label className="text-xs text-muted-foreground">Temperatura</Label>
-            <Select value={tempFilter} onValueChange={setTempFilter}>
-              <SelectTrigger className="w-full sm:w-[120px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="quente">Quente</SelectItem>
-                <SelectItem value="morna">Morna</SelectItem>
-                <SelectItem value="fria">Fria</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        )}
+        <div className="space-y-1 w-full sm:w-auto">
+          <Label className="text-xs text-muted-foreground">Consultor</Label>
+          <Select value={consultantFilter} onValueChange={setConsultantFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {usuarios.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1 w-full sm:w-auto">
+          <Label className="text-xs text-muted-foreground">Temperatura</Label>
+          <Select value={tempFilter} onValueChange={setTempFilter}>
+            <SelectTrigger className="w-full sm:w-[120px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="quente">Quente</SelectItem>
+              <SelectItem value="morna">Morna</SelectItem>
+              <SelectItem value="fria">Fria</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -622,35 +772,37 @@ export default function DashboardVendas() {
                 <CardTitle>Leads por Etapa</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={{ count: { label: 'Leads', color: '#268C83' } }}
-                  className="h-[300px] w-full"
-                >
-                  <BarChart data={stagesData} layout="vertical" margin={{ left: 20, right: 20 }}>
-                    <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3" />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      width={100}
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: 'var(--muted)' }}
-                      content={<ChartTooltipContent />}
-                    />
-                    <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]}>
-                      <LabelList
-                        dataKey="count"
-                        position="right"
-                        fill="currentColor"
+                <div ref={chart1Ref} className="w-full">
+                  <ChartContainer
+                    config={{ count: { label: 'Leads', color: '#268C83' } }}
+                    className="h-[300px] w-full"
+                  >
+                    <BarChart data={stagesData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                      <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        width={100}
+                        tickLine={false}
+                        axisLine={false}
                         fontSize={12}
                       />
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
+                      <ChartTooltip
+                        cursor={{ fill: 'var(--muted)' }}
+                        content={<ChartTooltipContent />}
+                      />
+                      <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]}>
+                        <LabelList
+                          dataKey="count"
+                          position="right"
+                          fill="currentColor"
+                          fontSize={12}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -658,34 +810,36 @@ export default function DashboardVendas() {
                 <CardTitle>Valor por Etapa (R$)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={{ value: { label: 'Valor', color: '#268C83' } }}
-                  className="h-[300px] w-full"
-                >
-                  <BarChart data={stagesData} margin={{ top: 20 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="name"
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                      tickMargin={10}
-                    />
-                    <YAxis
-                      tickFormatter={(val) => `R$ ${val / 1000}k`}
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: 'var(--muted)' }}
-                      content={
-                        <ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />
-                      }
-                    />
-                    <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
+                <div ref={chart2Ref} className="w-full">
+                  <ChartContainer
+                    config={{ value: { label: 'Valor', color: '#268C83' } }}
+                    className="h-[300px] w-full"
+                  >
+                    <BarChart data={stagesData} margin={{ top: 20 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={12}
+                        tickMargin={10}
+                      />
+                      <YAxis
+                        tickFormatter={(val) => `R$ ${val / 1000}k`}
+                        tickLine={false}
+                        axisLine={false}
+                        fontSize={12}
+                      />
+                      <ChartTooltip
+                        cursor={{ fill: 'var(--muted)' }}
+                        content={
+                          <ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />
+                        }
+                      />
+                      <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ChartContainer>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -696,25 +850,29 @@ export default function DashboardVendas() {
                 <CardTitle>Funil de Conversão</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={{}} className="h-[300px] w-full">
-                  <FunnelChart>
-                    <ChartTooltip
-                      cursor={false}
-                      content={
-                        <ChartTooltipContent formatter={(val, name, item) => item.payload.label} />
-                      }
-                    />
-                    <Funnel dataKey="value" data={funnelData} isAnimationActive>
-                      <LabelList
-                        position="center"
-                        fill="#fff"
-                        stroke="none"
-                        dataKey="label"
-                        fontSize={14}
+                <div ref={chart3Ref} className="w-full">
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <FunnelChart>
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            formatter={(val, name, item) => item.payload.label}
+                          />
+                        }
                       />
-                    </Funnel>
-                  </FunnelChart>
-                </ChartContainer>
+                      <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                        <LabelList
+                          position="center"
+                          fill="#fff"
+                          stroke="none"
+                          dataKey="label"
+                          fontSize={14}
+                        />
+                      </Funnel>
+                    </FunnelChart>
+                  </ChartContainer>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -722,30 +880,32 @@ export default function DashboardVendas() {
                 <CardTitle>Temperatura dos Leads</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={{
-                    quente: { color: '#22c55e' },
-                    morna: { color: '#eab308' },
-                    fria: { color: '#ef4444' },
-                  }}
-                  className="h-[300px] w-full"
-                >
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Pie
-                      data={temperatureData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                    >
-                      {temperatureData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
+                <div ref={chart4Ref} className="w-full">
+                  <ChartContainer
+                    config={{
+                      quente: { color: '#22c55e' },
+                      morna: { color: '#eab308' },
+                      fria: { color: '#ef4444' },
+                    }}
+                    className="h-[300px] w-full"
+                  >
+                    <PieChart>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Pie
+                        data={temperatureData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={2}
+                      >
+                        {temperatureData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                </div>
               </CardContent>
             </Card>
           </div>

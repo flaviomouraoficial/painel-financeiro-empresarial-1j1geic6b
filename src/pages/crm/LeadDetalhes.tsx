@@ -45,6 +45,9 @@ import {
 } from 'lucide-react'
 import { LeadForm } from '@/components/crm/lead-form'
 import { format } from 'date-fns'
+import { ExportButtons } from '@/components/crm/export-buttons'
+import { exportToCsv, exportToExcel } from '@/lib/export-utils'
+import { exportToPdf } from '@/lib/pdf-export'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
@@ -301,6 +304,117 @@ export default function LeadDetalhes() {
     }
   }
 
+  const getExportFilename = (ext: string) => {
+    const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
+    const leadName = lead?.nome_lead?.replace(/\s+/g, '_') || 'Lead'
+    const dateStr = format(new Date(), 'dd_MM_yyyy')
+    return `Detalhes_Lead_${leadName}_${dateStr}_${userName}.${ext}`
+  }
+
+  const handleExportPdf = async () => {
+    const tableHtml = `
+      <h3>Dados do Lead</h3>
+      <table>
+        <tbody>
+          <tr><td style="width:20%"><strong>Nome</strong></td><td style="width:30%">${lead.nome_lead}</td><td style="width:20%"><strong>Empresa</strong></td><td style="width:30%">${lead.empresa_lead || '-'}</td></tr>
+          <tr><td><strong>Email</strong></td><td>${lead.email || '-'}</td><td><strong>Telefone</strong></td><td>${lead.telefone || '-'}</td></tr>
+          <tr><td><strong>Cargo</strong></td><td>${lead.cargo || '-'}</td><td><strong>Temperatura</strong></td><td style="text-transform: capitalize">${lead.temperatura || '-'}</td></tr>
+          <tr><td><strong>Valor Estimado</strong></td><td>${formatCurrency(lead.valor_estimado)}</td><td><strong>Probabilidade</strong></td><td>${probabilidade}%</td></tr>
+          <tr><td><strong>Etapa do Funil</strong></td><td style="text-transform: capitalize">${lead.etapa}</td><td><strong>Produto/Serviço</strong></td><td>${lead.expand?.servico_produto_id?.nome || '-'}</td></tr>
+        </tbody>
+      </table>
+      <br/>
+      <h3>Histórico de Interações</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Tipo</th><th>Usuário</th><th>Resumo</th></tr></thead>
+        <tbody>
+          ${interactions.map((i) => `<tr><td>${format(new Date(i.data_interacao), 'dd/MM/yyyy HH:mm')}</td><td style="text-transform: capitalize">${i.tipo}</td><td>${i.expand?.usuario_id?.name || '-'}</td><td>${i.resumo}</td></tr>`).join('')}
+          ${interactions.length === 0 ? '<tr><td colspan="4" class="text-center">Nenhuma interação registrada</td></tr>' : ''}
+        </tbody>
+      </table>
+      <br/>
+      <h3>Documentos</h3>
+      <table>
+        <thead><tr><th>Nome do Arquivo</th><th>Tipo</th><th>Data de Upload</th></tr></thead>
+        <tbody>
+          ${docs.map((d) => `<tr><td>${d.nome_arquivo}</td><td style="text-transform: capitalize">${d.tipo_documento}</td><td>${format(new Date(d.data_upload), 'dd/MM/yyyy')}</td></tr>`).join('')}
+          ${docs.length === 0 ? '<tr><td colspan="3" class="text-center">Nenhum documento anexado</td></tr>' : ''}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: getExportFilename('pdf'),
+      title: `Detalhes do Lead: ${lead.nome_lead}`,
+      tableHtml,
+    })
+  }
+
+  const handleExportExcel = async () => {
+    const dadosData = [
+      ['Campo', 'Valor'],
+      ['Nome do Lead', lead.nome_lead],
+      ['Empresa', lead.empresa_lead || ''],
+      ['Email', lead.email || ''],
+      ['Telefone', lead.telefone || ''],
+      ['Cargo', lead.cargo || ''],
+      ['Valor Estimado', lead.valor_estimado || 0],
+      ['Probabilidade (%)', probabilidade],
+      ['Temperatura', lead.temperatura || ''],
+      ['Etapa do Funil', lead.etapa || ''],
+      ['Produto/Serviço', lead.expand?.servico_produto_id?.nome || ''],
+      ['Data de Criação', format(parseISO(lead.created), 'dd/MM/yyyy HH:mm')],
+    ]
+
+    const interacoesData = [
+      ['Data/Hora', 'Tipo', 'Usuário', 'Resumo', 'Duração (min)'],
+      ...interactions.map((i) => [
+        format(new Date(i.data_interacao), 'dd/MM/yyyy HH:mm'),
+        i.tipo,
+        i.expand?.usuario_id?.name || '',
+        i.resumo,
+        i.duracao_minutos || 0,
+      ]),
+    ]
+
+    const documentosData = [
+      ['Nome do Arquivo', 'Tipo', 'Data de Upload', 'Usuário'],
+      ...docs.map((d) => [
+        d.nome_arquivo,
+        d.tipo_documento,
+        format(new Date(d.data_upload), 'dd/MM/yyyy'),
+        d.expand?.usuario_id?.name || '',
+      ]),
+    ]
+
+    const metadataData = [
+      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm')],
+      ['Usuário', user?.name || 'Sistema'],
+      ['Empresa', 'Trend Consultoria'],
+    ]
+
+    exportToExcel(getExportFilename('xlsx'), [
+      { name: 'Detalhes do Lead', data: dadosData },
+      { name: 'Interações', data: interacoesData },
+      { name: 'Documentos', data: documentosData },
+      { name: 'Metadados', data: metadataData },
+    ])
+  }
+
+  const handleExportCsv = async () => {
+    const rows = [
+      ['Data/Hora', 'Tipo', 'Usuário', 'Resumo', 'Duração (min)'],
+      ...interactions.map((i) => [
+        format(new Date(i.data_interacao), 'dd/MM/yyyy HH:mm'),
+        i.tipo,
+        i.expand?.usuario_id?.name || '',
+        i.resumo,
+        i.duracao_minutos || 0,
+      ]),
+    ]
+    exportToCsv(getExportFilename('csv'), rows)
+  }
+
   if (loadingLead) {
     return (
       <div className="flex flex-col gap-6 p-6">
@@ -325,8 +439,8 @@ export default function LeadDetalhes() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1400px] mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="flex flex-col gap-6 max-w-[1400px] mx-auto pb-10 px-4 md:px-8 mt-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
@@ -336,21 +450,37 @@ export default function LeadDetalhes() {
             <p className="text-sm text-muted-foreground">Gestão completa do prospect</p>
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" /> Editar
-          </Button>
-          {!lead.cliente_id && (
+
+        <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center w-full md:w-auto">
+          <ExportButtons
+            onExportPdf={handleExportPdf}
+            onExportExcel={handleExportExcel}
+            onExportCsv={handleExportCsv}
+          />
+          <div className="flex gap-2 flex-wrap w-full md:w-auto">
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => setShowConvertAlert(true)}
+              variant="outline"
+              className="flex-1 md:flex-none"
+              onClick={() => setIsEditOpen(true)}
             >
-              <UserCheck className="h-4 w-4 mr-2" /> Converter
+              <Edit className="h-4 w-4 mr-2" /> Editar
             </Button>
-          )}
-          <Button variant="destructive" onClick={() => setShowDeleteAlert(true)}>
-            <Trash2 className="h-4 w-4 mr-2" /> Deletar
-          </Button>
+            {!lead.cliente_id && (
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 md:flex-none"
+                onClick={() => setShowConvertAlert(true)}
+              >
+                <UserCheck className="h-4 w-4 mr-2" /> Converter
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              className="flex-1 md:flex-none"
+              onClick={() => setShowDeleteAlert(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Deletar
+            </Button>
+          </div>
         </div>
       </div>
 

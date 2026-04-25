@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { getLeads, getEtapasFunil, updateLead } from '@/services/crm'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,11 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import pb from '@/lib/pocketbase/client'
-import { subDays, isAfter, parseISO } from 'date-fns'
+import { subDays, isAfter, parseISO, format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { ExportButtons } from '@/components/crm/export-buttons'
+import { exportToCsv, exportToExcel } from '@/lib/export-utils'
+import { exportToPdf } from '@/lib/pdf-export'
 
 const FALLBACK_ETAPAS = [
   'prospecção',
@@ -32,14 +36,23 @@ const FALLBACK_ETAPAS = [
   'não fechou',
 ]
 
+const normalizeStr = (str: string) => {
+  if (!str) return ''
+  return str
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+}
+
 export default function Funil() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
   const [etapas, setEtapas] = useState<string[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [movingLeadId, setMovingLeadId] = useState<string | null>(null)
-  const [selectedLead, setSelectedLead] = useState<any>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const { toast } = useToast()
 
@@ -55,18 +68,35 @@ export default function Funil() {
         pb.collection('users').getFullList({ sort: 'name' }),
       ])
       setLeads(l)
+
+      const uniqueEtapasMap = new Map()
+
+      // Load stages from config or fallback
       if (e.length > 0) {
-        const uniqueEtapasMap = new Map()
         e.forEach((et) => {
-          const key = et.nome_etapa.toLowerCase().trim()
+          const key = normalizeStr(et.nome_etapa)
           if (!uniqueEtapasMap.has(key)) {
             uniqueEtapasMap.set(key, et.nome_etapa)
           }
         })
-        setEtapas(Array.from(uniqueEtapasMap.values()))
       } else {
-        setEtapas(FALLBACK_ETAPAS)
+        FALLBACK_ETAPAS.forEach((et) => {
+          const key = normalizeStr(et)
+          uniqueEtapasMap.set(key, et)
+        })
       }
+
+      // Ensure no lead stage is left behind
+      l.forEach((lead) => {
+        if (lead.etapa) {
+          const key = normalizeStr(lead.etapa)
+          if (!uniqueEtapasMap.has(key)) {
+            uniqueEtapasMap.set(key, lead.etapa)
+          }
+        }
+      })
+
+      setEtapas(Array.from(uniqueEtapasMap.values()))
       setUsuarios(u)
     } catch (error) {
       console.error(error)
@@ -90,7 +120,7 @@ export default function Funil() {
     const id = e.dataTransfer.getData('text/plain')
     if (id) {
       const lead = leads.find((l) => l.id === id)
-      if (lead && lead.etapa !== novaEtapa) {
+      if (lead && normalizeStr(lead.etapa) !== normalizeStr(novaEtapa)) {
         const originalEtapa = lead.etapa
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, etapa: novaEtapa } : l)))
         setMovingLeadId(id)
@@ -133,6 +163,125 @@ export default function Funil() {
     setPeriodFilter('all')
   }
 
+  const getExportFilename = (ext: string) => {
+    const userName = user?.name?.replace(/\s+/g, '_') || 'Usuario'
+    const dateStr = format(new Date(), 'dd_MM_yyyy')
+    return `Funil_Vendas_${dateStr}_${userName}.${ext}`
+  }
+
+  const handleExportPdf = async () => {
+    let tableHtml = `
+      <h3>Resumo do Funil</h3>
+      <table>
+        <thead><tr><th>Etapa</th><th>Leads</th><th>Valor Total</th><th>Probabilidade Média</th></tr></thead>
+        <tbody>
+    `
+    etapas.forEach((etapa) => {
+      const colLeads = filteredLeads.filter((l) => normalizeStr(l.etapa) === normalizeStr(etapa))
+      const totalValor = colLeads.reduce((acc, l) => acc + (l.valor_estimado || 0), 0)
+      const mediaProb =
+        colLeads.length > 0
+          ? colLeads.reduce((acc, l) => acc + (l.probabilidade_fechamento || 0), 0) /
+            colLeads.length
+          : 0
+
+      tableHtml += `<tr><td style="text-transform: capitalize">${etapa}</td><td>${colLeads.length}</td><td>${formatCurrency(totalValor)}</td><td>${mediaProb.toFixed(0)}%</td></tr>`
+    })
+    tableHtml += `</tbody></table><br/><h3>Lista Completa de Leads</h3><table><thead><tr><th>Nome do Lead</th><th>Empresa</th><th>Etapa</th><th>Valor Estimado</th><th>Probabilidade</th><th>Data Criação</th></tr></thead><tbody>`
+
+    filteredLeads.forEach((l) => {
+      tableHtml += `<tr><td>${l.nome_lead}</td><td>${l.empresa_lead || '-'}</td><td style="text-transform: capitalize">${l.etapa || '-'}</td><td>${formatCurrency(l.valor_estimado || 0)}</td><td>${l.probabilidade_fechamento || 0}%</td><td>${format(parseISO(l.created), 'dd/MM/yyyy')}</td></tr>`
+    })
+    tableHtml += `</tbody></table>`
+
+    await exportToPdf({
+      filename: getExportFilename('pdf'),
+      title: 'Funil de Vendas',
+      period: periodFilter !== 'all' ? `Últimos ${periodFilter} dias` : 'Todo o período',
+      filters: `Consultor: ${consultantFilter === 'all' ? 'Todos' : consultantFilter}, Temperatura: ${tempFilter}`,
+      tableHtml,
+    })
+  }
+
+  const handleExportExcel = async () => {
+    const leadsData = filteredLeads.map((l) => [
+      l.nome_lead,
+      l.empresa_lead || '',
+      l.etapa || '',
+      l.valor_estimado || 0,
+      l.probabilidade_fechamento || 0,
+      l.expand?.consultor_id?.name || '',
+      format(parseISO(l.created), 'dd/MM/yyyy'),
+    ])
+
+    const resumeData = [['Etapa', 'Quantidade Leads', 'Valor Total', 'Probabilidade Média (%)']]
+    etapas.forEach((etapa) => {
+      const colLeads = filteredLeads.filter((l) => normalizeStr(l.etapa) === normalizeStr(etapa))
+      const totalValor = colLeads.reduce((acc, l) => acc + (l.valor_estimado || 0), 0)
+      const mediaProb =
+        colLeads.length > 0
+          ? colLeads.reduce((acc, l) => acc + (l.probabilidade_fechamento || 0), 0) /
+            colLeads.length
+          : 0
+      resumeData.push([
+        etapa,
+        colLeads.length as any,
+        totalValor as any,
+        mediaProb.toFixed(0) as any,
+      ])
+    })
+
+    const filtersData = [
+      ['Filtro', 'Valor'],
+      ['Período', periodFilter],
+      ['Consultor', consultantFilter],
+      ['Temperatura', tempFilter],
+    ]
+
+    const metadataData = [
+      ['Gerado em', format(new Date(), 'dd/MM/yyyy HH:mm')],
+      ['Usuário', user?.name || 'Sistema'],
+      ['Empresa', 'Trend Consultoria'],
+    ]
+
+    exportToExcel(getExportFilename('xlsx'), [
+      {
+        name: 'Leads',
+        data: [
+          [
+            'Nome',
+            'Empresa',
+            'Etapa',
+            'Valor Estimado',
+            'Probabilidade',
+            'Consultor',
+            'Data Criação',
+          ],
+          ...leadsData,
+        ],
+      },
+      { name: 'Resumo Funil', data: resumeData },
+      { name: 'Filtros', data: filtersData },
+      { name: 'Metadados', data: metadataData },
+    ])
+  }
+
+  const handleExportCsv = async () => {
+    const rows = [
+      ['Nome', 'Empresa', 'Etapa', 'Valor Estimado', 'Probabilidade', 'Consultor', 'Data Criação'],
+      ...filteredLeads.map((l) => [
+        l.nome_lead,
+        l.empresa_lead || '',
+        l.etapa || '',
+        l.valor_estimado || 0,
+        l.probabilidade_fechamento || 0,
+        l.expand?.consultor_id?.name || '',
+        format(parseISO(l.created), 'dd/MM/yyyy'),
+      ]),
+    ]
+    exportToCsv(getExportFilename('csv'), rows)
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col h-full gap-4 p-4">
@@ -154,12 +303,19 @@ export default function Funil() {
           <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
           <p className="text-muted-foreground text-sm">Gerencie o fluxo dos seus leads</p>
         </div>
-        <Button
-          onClick={() => setIsFormOpen(true)}
-          className="bg-[#268C83] hover:bg-[#268C83]/90 text-white h-11 px-6"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Lead
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <ExportButtons
+            onExportPdf={handleExportPdf}
+            onExportExcel={handleExportExcel}
+            onExportCsv={handleExportCsv}
+          />
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="bg-[#268C83] hover:bg-[#268C83]/90 text-white h-10 px-6 w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Novo Lead
+          </Button>
+        </div>
       </div>
 
       <div className="bg-card border rounded-lg p-4 mb-4 flex flex-wrap items-end gap-4 shadow-sm">
@@ -207,8 +363,8 @@ export default function Funil() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2 ml-auto">
-          <Button variant="outline" onClick={clearFilters} className="h-9">
+        <div className="flex gap-2 ml-auto w-full sm:w-auto mt-2 sm:mt-0">
+          <Button variant="outline" onClick={clearFilters} className="h-9 w-full sm:w-auto">
             Limpar Filtros
           </Button>
         </div>
@@ -233,7 +389,7 @@ export default function Funil() {
           <div className="flex gap-4 p-4 h-full min-w-max">
             {etapas.map((etapa) => {
               const colLeads = filteredLeads.filter(
-                (l) => (l.etapa || '').toLowerCase() === etapa.toLowerCase(),
+                (l) => normalizeStr(l.etapa) === normalizeStr(etapa),
               )
               const totalValor = colLeads.reduce((acc, l) => acc + (l.valor_estimado || 0), 0)
               const mediaProb =
