@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
-import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +17,12 @@ import { LineChart, Line, XAxis, CartesianGrid, Tooltip as RechartsTooltip, Lege
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Download, AlertCircle, FileX2, TrendingUp, TrendingDown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addDays } from 'date-fns'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 
 export default function RelatoriosFluxoCaixa() {
   const [loading, setLoading] = useState(false)
@@ -26,12 +31,16 @@ export default function RelatoriosFluxoCaixa() {
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
   const [tipoRelatorio, setTipoRelatorio] = useState('ambos')
-  const [isExporting, setIsExporting] = useState(false)
-  const chartRef = useRef<HTMLDivElement>(null)
 
   const fetchFluxoCaixa = async () => {
+    if (!dataInicio || !dataFim || dataFim < dataInicio) {
+      toast.error('Período inválido')
+      return
+    }
+
     setLoading(true)
     setError(null)
+
     try {
       const user = pb.authStore.record
       if (!user) throw new Error('Não autenticado')
@@ -57,7 +66,6 @@ export default function RelatoriosFluxoCaixa() {
         .reduce((a, b) => a + b.valor, 0)
 
       const saldoInicialPeriodo = saldoInicialContas + pastReceitas - pastDespesas
-
       const periodLancamentos = lancamentos.filter(
         (l) => l.data_lancamento >= dataInicio && l.data_lancamento <= dataFim,
       )
@@ -74,9 +82,8 @@ export default function RelatoriosFluxoCaixa() {
       let realizadoSaidas = 0
 
       const dailyData: Record<string, any> = {}
-      let d = new Date(dataInicio)
-      const end = new Date(dataFim)
-
+      let d = new Date(dataInicio + 'T00:00:00')
+      const end = new Date(dataFim + 'T23:59:59')
       let runningProjetado = saldoInicialPeriodo
       let runningRealizado = saldoInicialPeriodo
 
@@ -84,12 +91,10 @@ export default function RelatoriosFluxoCaixa() {
         const dateStr = format(d, 'yyyy-MM-dd')
         dailyData[dateStr] = {
           date: format(d, 'dd/MM'),
-          projetado: 0,
-          realizado: 0,
-          inRealizado: 0,
-          outRealizado: 0,
           inProjetado: 0,
           outProjetado: 0,
+          inRealizado: 0,
+          outRealizado: 0,
         }
         d = addDays(d, 1)
       }
@@ -128,16 +133,8 @@ export default function RelatoriosFluxoCaixa() {
           const day = dailyData[k]
           runningProjetado += day.inProjetado - day.outProjetado
           runningRealizado += day.inRealizado - day.outRealizado
-
-          return {
-            date: day.date,
-            projetado: runningProjetado,
-            realizado: runningRealizado,
-          }
+          return { date: day.date, projetado: runningProjetado, realizado: runningRealizado }
         })
-
-      const saldoFinalProjetado = saldoInicialPeriodo + projetadoEntradas - projetadoSaidas
-      const saldoFinalRealizado = saldoInicialPeriodo + realizadoEntradas - realizadoSaidas
 
       setData({
         empty: false,
@@ -146,8 +143,8 @@ export default function RelatoriosFluxoCaixa() {
         projetadoSaidas,
         realizadoEntradas,
         realizadoSaidas,
-        saldoFinalProjetado,
-        saldoFinalRealizado,
+        saldoFinalProjetado: saldoInicialPeriodo + projetadoEntradas - projetadoSaidas,
+        saldoFinalRealizado: saldoInicialPeriodo + realizadoEntradas - realizadoSaidas,
         chartData,
       })
     } catch (err: any) {
@@ -157,181 +154,39 @@ export default function RelatoriosFluxoCaixa() {
     }
   }
 
-  const exportarPdf = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
-    try {
-      const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
-      const chartImg = captureChart(chartRef)
-
-      const tableHtml = `
-        <table class="pdf-table">
-          <thead>
-            <tr>
-              <th>Descrição</th>
-              ${tipoRelatorio !== 'realizado' ? '<th style="text-align: right">Projetado</th>' : ''}
-              ${tipoRelatorio !== 'projetado' ? '<th style="text-align: right">Realizado</th>' : ''}
-              ${tipoRelatorio === 'ambos' ? '<th style="text-align: right">Diferença</th>' : ''}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Saldo Inicial</td>
-              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right">${formatCurrency(data.saldoInicial)}</td>` : ''}
-              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right">${formatCurrency(data.saldoInicial)}</td>` : ''}
-              ${tipoRelatorio === 'ambos' ? '<td style="text-align: right">-</td>' : ''}
-            </tr>
-            <tr>
-              <td style="color: #16a34a;">(+) Entradas</td>
-              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; color: #16a34a;">${formatCurrency(data.projetadoEntradas)}</td>` : ''}
-              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; color: #16a34a;">${formatCurrency(data.realizadoEntradas)}</td>` : ''}
-              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right">${formatCurrency(data.realizadoEntradas - data.projetadoEntradas)}</td>` : ''}
-            </tr>
-            <tr>
-              <td style="color: #dc2626;">(-) Saídas</td>
-              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; color: #dc2626;">${formatCurrency(data.projetadoSaidas)}</td>` : ''}
-              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; color: #dc2626;">${formatCurrency(data.realizadoSaidas)}</td>` : ''}
-              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right">${formatCurrency(data.realizadoSaidas - data.projetadoSaidas)}</td>` : ''}
-            </tr>
-            <tr>
-              <td style="font-weight: bold;">Saldo Final</td>
-              ${tipoRelatorio !== 'realizado' ? `<td style="text-align: right; font-weight: bold; ${data.saldoFinalProjetado >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(data.saldoFinalProjetado)}</td>` : ''}
-              ${tipoRelatorio !== 'projetado' ? `<td style="text-align: right; font-weight: bold; ${data.saldoFinalRealizado >= 0 ? 'color: #16a34a;' : 'color: #dc2626;'}">${formatCurrency(data.saldoFinalRealizado)}</td>` : ''}
-              ${tipoRelatorio === 'ambos' ? `<td style="text-align: right; font-weight: bold;">${formatCurrency(data.saldoFinalRealizado - data.saldoFinalProjetado)}</td>` : ''}
-            </tr>
-          </tbody>
-        </table>
-      `
-
-      const startDate = new Date(dataInicio + 'T00:00:00')
-      const endDate = new Date(dataFim + 'T00:00:00')
-      const year = format(startDate, 'yyyy')
-      const startMonth = format(startDate, 'MM')
-      const endMonth = format(endDate, 'MM')
-
-      await exportToPdf({
-        filename: `FluxoCaixa_${year}_${startMonth}_a_${endMonth}.pdf`,
-        title: 'Fluxo de Caixa',
-        period: `${format(startDate, 'dd/MM/yyyy')} a ${format(endDate, 'dd/MM/yyyy')}`,
-        tableHtml,
-        chartImages: chartImg ? [chartImg] : [],
-        orientation: 'portrait',
-      })
-
-      toast.success('PDF gerado com sucesso', {
-        style: { backgroundColor: '#22c55e', color: 'white', border: 'none' },
-        duration: 3000,
-      })
-    } catch (err) {
-      toast.error('Erro ao gerar PDF. Tente novamente.', {
-        style: { backgroundColor: '#ef4444', color: 'white', border: 'none' },
-        duration: 5000,
-      })
-    }
-  }
-
-  const exportarExcel = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
-    try {
-      const { exportToExcel } = await import('@/lib/export-utils')
-      const year = format(new Date(dataInicio), 'yyyy')
-      const startMonth = format(new Date(dataInicio), 'MM')
-      const endMonth = format(new Date(dataFim), 'MM')
-
-      const sheets = [
-        {
-          name: 'FluxoCaixa',
-          data: [
-            ['Descrição', 'Projetado', 'Realizado', 'Diferença'],
-            ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
-            [
-              'Entradas',
-              data.projetadoEntradas,
-              data.realizadoEntradas,
-              data.realizadoEntradas - data.projetadoEntradas,
-            ],
-            [
-              'Saídas',
-              -data.projetadoSaidas,
-              -data.realizadoSaidas,
-              -(data.realizadoSaidas - data.projetadoSaidas),
-            ],
-            [
-              'Saldo Final',
-              data.saldoFinalProjetado,
-              data.saldoFinalRealizado,
-              data.saldoFinalRealizado - data.saldoFinalProjetado,
-            ],
-          ],
-        },
-        {
-          name: 'Diário',
-          data: [
-            [
-              'Data',
-              'Entradas Proj',
-              'Saídas Proj',
-              'Entradas Real',
-              'Saídas Real',
-              'Saldo Proj',
-              'Saldo Real',
-            ],
-            ...data.chartData.map((d: any) => {
-              const day = Object.values(data.chartData).find((x: any) => x.date === d.date) as any
-              return [
-                d.date,
-                day?.inProjetado || 0,
-                -(day?.outProjetado || 0),
-                day?.inRealizado || 0,
-                -(day?.outRealizado || 0),
-                d.projetado,
-                d.realizado,
-              ]
-            }),
-          ],
-        },
-      ]
-
-      exportToExcel(`FluxoCaixa_${year}_${startMonth}_a_${endMonth}.xls`, sheets)
-      toast.success('Excel gerado com sucesso')
-    } catch (err) {
-      toast.error('Erro ao gerar Excel')
-    }
-  }
-
-  const exportarCsv = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
-    try {
-      const { exportToCsv } = await import('@/lib/export-utils')
-      const year = format(new Date(dataInicio), 'yyyy')
-      const startMonth = format(new Date(dataInicio), 'MM')
-      const endMonth = format(new Date(dataFim), 'MM')
-
-      exportToCsv(`FluxoCaixa_${year}_${startMonth}_a_${endMonth}.csv`, [
-        ['Descrição', 'Projetado', 'Realizado', 'Diferença'],
-        ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
-        [
-          'Entradas',
-          data.projetadoEntradas,
-          data.realizadoEntradas,
-          data.realizadoEntradas - data.projetadoEntradas,
-        ],
-        [
-          'Saídas',
-          -data.projetadoSaidas,
-          -data.realizadoSaidas,
-          -(data.realizadoSaidas - data.projetadoSaidas),
-        ],
-        [
-          'Saldo Final',
-          data.saldoFinalProjetado,
-          data.saldoFinalRealizado,
-          data.saldoFinalRealizado - data.saldoFinalProjetado,
-        ],
-      ])
-      toast.success('CSV gerado com sucesso')
-    } catch (err) {
-      toast.error('Erro ao gerar CSV')
-    }
+  const exportarCsv = () => {
+    if (!data || data.empty) return
+    const csvRows = [
+      ['Descricao', 'Projetado', 'Realizado', 'Diferenca'],
+      ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
+      [
+        'Entradas',
+        data.projetadoEntradas,
+        data.realizadoEntradas,
+        data.realizadoEntradas - data.projetadoEntradas,
+      ],
+      [
+        'Saidas',
+        -data.projetadoSaidas,
+        -data.realizadoSaidas,
+        -(data.realizadoSaidas - data.projetadoSaidas),
+      ],
+      [
+        'Saldo Final',
+        data.saldoFinalProjetado,
+        data.saldoFinalRealizado,
+        data.saldoFinalRealizado - data.saldoFinalProjetado,
+      ],
+    ]
+    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', `FluxoCaixa_${dataInicio}_a_${dataFim}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('CSV gerado com sucesso')
   }
 
   useEffect(() => {
@@ -373,12 +228,16 @@ export default function RelatoriosFluxoCaixa() {
           <Button onClick={fetchFluxoCaixa} className="bg-[#268C83] hover:bg-teal-700 text-white">
             Gerar Relatório
           </Button>
-          <ExportDropdown
-            disabled={loading || !data || data.empty}
-            onExportPdf={exportarPdf}
-            onExportExcel={exportarExcel}
-            onExportCsv={exportarCsv}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={loading || !data || data.empty}>
+                <Download className="mr-2 h-4 w-4" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportarCsv}>Exportar CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -430,43 +289,41 @@ export default function RelatoriosFluxoCaixa() {
               <CardTitle>Evolução do Saldo Diário</CardTitle>
             </CardHeader>
             <CardContent>
-              <div ref={chartRef} className="w-full">
-                <ChartContainer
-                  config={{
-                    projetado: { label: 'Projetado', color: '#268C83' },
-                    realizado: { label: 'Realizado', color: '#10B981' },
-                  }}
-                  className="h-[300px] w-full"
+              <ChartContainer
+                config={{
+                  projetado: { label: 'Projetado', color: '#268C83' },
+                  realizado: { label: 'Realizado', color: '#10B981' },
+                }}
+                className="h-[300px] w-full"
+              >
+                <LineChart
+                  data={data.chartData}
+                  margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
                 >
-                  <LineChart
-                    data={data.chartData}
-                    margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    {tipoRelatorio !== 'realizado' && (
-                      <Line
-                        type="monotone"
-                        dataKey="projetado"
-                        stroke="var(--color-projetado)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    )}
-                    {tipoRelatorio !== 'projetado' && (
-                      <Line
-                        type="monotone"
-                        dataKey="realizado"
-                        stroke="var(--color-realizado)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    )}
-                  </LineChart>
-                </ChartContainer>
-              </div>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  {tipoRelatorio !== 'realizado' && (
+                    <Line
+                      type="monotone"
+                      dataKey="projetado"
+                      stroke="var(--color-projetado)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  )}
+                  {tipoRelatorio !== 'projetado' && (
+                    <Line
+                      type="monotone"
+                      dataKey="realizado"
+                      stroke="var(--color-realizado)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  )}
+                </LineChart>
+              </ChartContainer>
             </CardContent>
           </Card>
 
