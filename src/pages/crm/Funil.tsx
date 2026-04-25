@@ -25,7 +25,7 @@ import { ExportButtons } from '@/components/crm/export-buttons'
 import { exportToCsv, exportToExcel } from '@/lib/export-utils'
 import { exportToPdf } from '@/lib/pdf-export'
 
-const FALLBACK_ETAPAS = [
+const VALID_ETAPAS = [
   'prospecção',
   'contato',
   'briefing',
@@ -35,6 +35,8 @@ const FALLBACK_ETAPAS = [
   'fechou',
   'não fechou',
 ]
+
+const FALLBACK_ETAPAS = VALID_ETAPAS
 
 const normalizeStr = (str: string) => {
   if (!str) return ''
@@ -115,24 +117,43 @@ export default function Funil() {
     e.dataTransfer.setData('text/plain', id)
   }
 
-  const handleDrop = async (e: React.DragEvent, novaEtapa: string) => {
+  const handleDrop = async (e: React.DragEvent, novaEtapaVisivel: string) => {
     e.preventDefault()
     const id = e.dataTransfer.getData('text/plain')
     if (id) {
       const lead = leads.find((l) => l.id === id)
-      if (lead && normalizeStr(lead.etapa) !== normalizeStr(novaEtapa)) {
+      if (lead && normalizeStr(lead.etapa) !== normalizeStr(novaEtapaVisivel)) {
+        const validEtapaMatch = VALID_ETAPAS.find(
+          (et) => normalizeStr(et) === normalizeStr(novaEtapaVisivel),
+        )
+
+        if (!validEtapaMatch) {
+          toast({
+            title: 'Erro de validação',
+            description: 'Esta etapa não é válida no sistema.',
+            variant: 'destructive',
+          })
+          return
+        }
+
         const originalEtapa = lead.etapa
-        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, etapa: novaEtapa } : l)))
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, etapa: validEtapaMatch } : l)))
         setMovingLeadId(id)
+
         try {
-          await updateLead(id, { etapa: novaEtapa })
+          await updateLead(id, { etapa: validEtapaMatch })
           toast({
             title: 'Sucesso',
-            description: `Lead movido para ${novaEtapa}`,
+            description: `Lead movido para ${novaEtapaVisivel}`,
             className: 'bg-green-600 text-white border-none',
           })
         } catch (err: any) {
-          toast({ title: 'Erro ao mover', description: err.message, variant: 'destructive' })
+          console.error('Erro ao atualizar o lead:', err)
+          toast({
+            title: 'Erro ao atualizar o lead.',
+            description: 'Tente novamente.',
+            variant: 'destructive',
+          })
           setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, etapa: originalEtapa } : l)))
         } finally {
           setMovingLeadId(null)
@@ -448,12 +469,17 @@ export default function Funil() {
                         return (
                           <div
                             key={lead.id}
-                            draggable
+                            draggable={movingLeadId !== lead.id}
                             onDragStart={(e) => handleDragStart(e, lead.id)}
-                            className="relative group bg-card border rounded-lg shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing p-3 min-h-[120px] flex flex-col"
+                            className={cn(
+                              'relative group bg-card border rounded-lg shadow-sm hover:shadow-md transition-all p-3 min-h-[120px] flex flex-col',
+                              movingLeadId === lead.id
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'cursor-grab active:cursor-grabbing',
+                            )}
                           >
                             {movingLeadId === lead.id && (
-                              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                              <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-lg">
                                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
                               </div>
                             )}

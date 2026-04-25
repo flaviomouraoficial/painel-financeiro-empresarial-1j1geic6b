@@ -44,8 +44,9 @@ import {
   Plus,
 } from 'lucide-react'
 import { LeadForm } from '@/components/crm/lead-form'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { ExportButtons } from '@/components/crm/export-buttons'
+import { cn } from '@/lib/utils'
 import { exportToCsv, exportToExcel } from '@/lib/export-utils'
 import { exportToPdf } from '@/lib/pdf-export'
 
@@ -100,6 +101,18 @@ export default function LeadDetalhes() {
 
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUpdatingEtapa, setIsUpdatingEtapa] = useState(false)
+
+  const VALID_ETAPAS = [
+    'prospecção',
+    'contato',
+    'briefing',
+    'proposta',
+    'apresentação',
+    'análise',
+    'fechou',
+    'não fechou',
+  ]
 
   const loadData = async () => {
     if (!id) return
@@ -138,6 +151,31 @@ export default function LeadDetalhes() {
     } catch (err) {
       toast({ title: 'Erro ao atualizar', variant: 'destructive' })
       setProbabilidade(lead.probabilidade_fechamento || 0)
+    }
+  }
+
+  const handleEtapaChange = async (novaEtapa: string) => {
+    if (!lead || lead.etapa === novaEtapa) return
+    const originalEtapa = lead.etapa
+    setIsUpdatingEtapa(true)
+    setLead((prev: any) => ({ ...prev, etapa: novaEtapa }))
+    try {
+      await pb.collection('leads').update(lead.id, { etapa: novaEtapa })
+      toast({
+        title: 'Sucesso',
+        description: `Lead movido para ${novaEtapa}`,
+        className: 'bg-green-600 text-white border-none',
+      })
+    } catch (err: any) {
+      console.error('Erro ao atualizar o lead:', err)
+      toast({
+        title: 'Erro ao atualizar o lead.',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      })
+      setLead((prev: any) => ({ ...prev, etapa: originalEtapa }))
+    } finally {
+      setIsUpdatingEtapa(false)
     }
   }
 
@@ -538,9 +576,32 @@ export default function LeadDetalhes() {
                 </div>
                 <div className="pt-2">
                   <p className="text-xs text-muted-foreground font-medium mb-2">Etapa do Funil</p>
-                  <Badge variant="secondary" className="capitalize bg-muted/80">
-                    {lead.etapa}
-                  </Badge>
+                  <div className="relative inline-block">
+                    <Select
+                      value={lead.etapa}
+                      onValueChange={handleEtapaChange}
+                      disabled={isUpdatingEtapa}
+                    >
+                      <SelectTrigger
+                        className={cn(
+                          'h-8 text-xs w-[180px] capitalize',
+                          isUpdatingEtapa && 'opacity-50',
+                        )}
+                      >
+                        <SelectValue placeholder="Selecione a etapa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VALID_ETAPAS.map((e) => (
+                          <SelectItem key={e} value={e} className="capitalize">
+                            {e}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isUpdatingEtapa && (
+                      <Loader2 className="absolute right-[-24px] top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>

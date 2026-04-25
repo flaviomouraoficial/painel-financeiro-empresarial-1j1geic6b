@@ -12,6 +12,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
 import { createLead, updateLead } from '@/services/crm'
 import { useToast } from '@/hooks/use-toast'
@@ -204,25 +211,33 @@ export function LeadForm({ lead, open, onOpenChange, onSuccess }: any) {
             >
               <div className="space-y-1">
                 <label className="text-xs font-medium">Etapa do Funil</label>
-                <select
-                  {...register('etapa')}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {[
-                    'prospecção',
-                    'contato',
-                    'briefing',
-                    'proposta',
-                    'apresentação',
-                    'análise',
-                    'fechou',
-                    'não fechou',
-                  ].map((e) => (
-                    <option key={e} value={e}>
-                      {e.charAt(0).toUpperCase() + e.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="etapa"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9 capitalize">
+                        <SelectValue placeholder="Selecione a etapa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          'prospecção',
+                          'contato',
+                          'briefing',
+                          'proposta',
+                          'apresentação',
+                          'análise',
+                          'fechou',
+                          'não fechou',
+                        ].map((e) => (
+                          <SelectItem key={e} value={e} className="capitalize">
+                            {e}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-1">
@@ -262,47 +277,77 @@ export function LeadForm({ lead, open, onOpenChange, onSuccess }: any) {
 
               <div className="space-y-1">
                 <label className="text-xs font-medium">Consultor Responsável *</label>
-                <select
-                  {...register('consultor_id', { required: true })}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Selecione...</option>
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name || u.email}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="consultor_id"
+                  control={control}
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {usuarios.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name || u.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium">Produto / Serviço</label>
-                <select
-                  {...register('servico_produto_id')}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Nenhum específico</option>
-                  {produtos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="servico_produto_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || 'none'}
+                      onValueChange={(val) => field.onChange(val === 'none' ? '' : val)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Nenhum específico" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum específico</SelectItem>
+                        {produtos.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
 
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-medium">Cliente Vinculado (Opcional)</label>
-                <select
-                  {...register('cliente_id')}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Sem vínculo</option>
-                  {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="cliente_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || 'none'}
+                      onValueChange={(val) => field.onChange(val === 'none' ? '' : val)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Sem vínculo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem vínculo</SelectItem>
+                        {clientes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   Vincule a um cliente existente se este lead for um upsell ou cross-sell.
                 </p>
