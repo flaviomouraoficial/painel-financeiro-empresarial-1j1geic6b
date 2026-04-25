@@ -33,6 +33,13 @@ export default function Funil() {
     if (e.length > 0) setEtapas(e.map((et) => et.nome_etapa))
   }
 
+  const leadsAtivos = leads.filter((l) => l.etapa !== 'fechou' && l.etapa !== 'não fechou')
+  const totalNegociacao = leadsAtivos.reduce((acc, l) => acc + (l.valor_estimado || 0), 0)
+  const leadsFechados = leads.filter((l) => l.etapa === 'fechou')
+  const taxaConversao = leads.length > 0 ? (leadsFechados.length / leads.length) * 100 : 0
+  const leadsProposta = leads.filter((l) => l.etapa === 'proposta')
+  const valorProposta = leadsProposta.reduce((acc, l) => acc + (l.valor_estimado || 0), 0)
+
   useEffect(() => {
     loadData()
   }, [])
@@ -60,9 +67,44 @@ export default function Funil() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)]">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
-        <p className="text-muted-foreground">Gerencie o fluxo dos seus leads</p>
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Funil de Vendas</h1>
+          <p className="text-muted-foreground">Gerencie o fluxo dos seus leads</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total em Negociação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalNegociacao)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Taxa de Conversão
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{taxaConversao.toFixed(1)}%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Valor em Proposta
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(valorProposta)}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-4 flex-1">
@@ -109,14 +151,16 @@ export default function Funil() {
                           {formatCurrency(lead.valor_estimado)}
                         </span>
                         <Badge
-                          className="text-[10px] px-1.5 py-0"
-                          variant={
-                            lead.temperatura === 'quente'
-                              ? 'destructive'
-                              : lead.temperatura === 'morna'
-                                ? 'default'
-                                : 'secondary'
-                          }
+                          className="text-[10px] px-1.5 py-0 border-none"
+                          style={{
+                            backgroundColor:
+                              lead.temperatura === 'quente'
+                                ? '#ef4444'
+                                : lead.temperatura === 'morna'
+                                  ? '#f97316'
+                                  : '#3b82f6',
+                            color: '#fff',
+                          }}
                         >
                           {lead.temperatura || 'N/A'}
                         </Badge>

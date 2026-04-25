@@ -75,13 +75,16 @@ export default function Leads() {
                 <td className="px-4 py-3 capitalize">{lead.etapa}</td>
                 <td className="px-4 py-3">
                   <Badge
-                    variant={
-                      lead.temperatura === 'quente'
-                        ? 'destructive'
-                        : lead.temperatura === 'morna'
-                          ? 'default'
-                          : 'secondary'
-                    }
+                    className="border-none"
+                    style={{
+                      backgroundColor:
+                        lead.temperatura === 'quente'
+                          ? '#ef4444'
+                          : lead.temperatura === 'morna'
+                            ? '#f97316'
+                            : '#3b82f6',
+                      color: '#fff',
+                    }}
                   >
                     {lead.temperatura || 'N/A'}
                   </Badge>

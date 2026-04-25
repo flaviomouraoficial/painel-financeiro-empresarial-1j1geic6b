@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T14:09:15.284Z",
+  "generatedAt": "2026-04-25T14:15:36.496Z",
   "collections": [
     {
       "name": "users",
@@ -1764,7 +1764,8 @@
             "alerta_fluxo_caixa",
             "recebimento",
             "pagamento",
-            "lancamento"
+            "lancamento",
+            "alerta_crm"
           ]
         },
         {

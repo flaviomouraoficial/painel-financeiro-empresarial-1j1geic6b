@@ -112,6 +112,42 @@ routerAdd(
       }
     })
 
+    // 4. Alerta de CRM: Leads inativos (> 5 dias)
+    const cincoDiasAtras =
+      new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] + ' 00:00:00.000Z'
+    const leadsInativos = $app.findRecordsByFilter(
+      'leads',
+      `empresa_id = '${empresaId}' && etapa != 'fechou' && etapa != 'não fechou' && data_ultimo_contato < '${cincoDiasAtras}' && ativo = true`,
+      '',
+      100,
+      0,
+    )
+    leadsInativos.forEach((l) => {
+      const consultorId = l.getString('consultor_id') || l.getString('usuario_id')
+      if (!consultorId) return
+      try {
+        $app.findFirstRecordByFilter(
+          'notificacoes',
+          `empresa_id = '${empresaId}' && tipo = 'alerta_crm' && link = '/crm/leads' && lida = false && mensagem ~ '${l.getString('nome_lead')}'`,
+        )
+      } catch (_) {
+        const notif = new Record(col)
+        notif.set('usuario_id', consultorId)
+        notif.set('empresa_id', empresaId)
+        notif.set('tipo', 'alerta_crm')
+        notif.set('titulo', 'Lead Inativo')
+        notif.set(
+          'mensagem',
+          `O lead ${l.getString('nome_lead')} não tem interação há mais de 5 dias.`,
+        )
+        notif.set('icone', 'Clock')
+        notif.set('cor', 'orange')
+        notif.set('link', '/crm/leads')
+        notif.set('lida', false)
+        $app.save(notif)
+      }
+    })
+
     return e.json(200, { success: true })
   },
   $apis.requireAuth(),

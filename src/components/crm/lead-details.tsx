@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/hooks/use-auth'
-import { getInteracoes, createInteracao, getDocumentos, createDocumento } from '@/services/crm'
+import {
+  getInteracoes,
+  createInteracao,
+  getDocumentos,
+  createDocumento,
+  updateLead,
+} from '@/services/crm'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
@@ -39,6 +45,9 @@ export function LeadDetails({ lead, open, onOpenChange }: any) {
         tipo: fd.get('tipo'),
         data_interacao: fd.get('data_interacao'),
         resumo: fd.get('resumo'),
+      })
+      await updateLead(lead.id, {
+        data_ultimo_contato: fd.get('data_interacao') + ' 00:00:00.000Z',
       })
       e.currentTarget.reset()
       toast({ title: 'Interação registrada' })
@@ -148,19 +157,24 @@ export function LeadDetails({ lead, open, onOpenChange }: any) {
               <Button type="submit">Add</Button>
             </form>
             <ScrollArea className="h-[400px]">
-              {interacoes.map((i) => (
-                <Card key={i.id} className="mb-3">
-                  <CardHeader className="pb-2 pt-3 px-4">
-                    <CardTitle className="text-sm font-semibold flex justify-between">
-                      <span className="capitalize">{i.tipo}</span>
-                      <span className="text-muted-foreground font-normal">
-                        {format(new Date(i.data_interacao), 'dd/MM/yyyy')}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3 px-4 text-sm">{i.resumo}</CardContent>
-                </Card>
-              ))}
+              <div className="relative border-l ml-3 pl-4 space-y-4">
+                {interacoes.map((i) => (
+                  <div key={i.id} className="relative">
+                    <div className="absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
+                    <Card className="mb-3">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-sm font-semibold flex justify-between">
+                          <span className="capitalize">{i.tipo}</span>
+                          <span className="text-muted-foreground font-normal">
+                            {format(new Date(i.data_interacao), 'dd/MM/yyyy')}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-3 px-4 text-sm">{i.resumo}</CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
             </ScrollArea>
           </TabsContent>
 
