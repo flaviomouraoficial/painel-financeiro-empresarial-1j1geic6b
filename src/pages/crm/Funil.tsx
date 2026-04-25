@@ -4,7 +4,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { LeadDetails } from '@/components/crm/lead-details'
+import { useNavigate } from 'react-router-dom'
 import { LeadForm } from '@/components/crm/lead-form'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency } from '@/lib/format'
@@ -33,6 +33,7 @@ const FALLBACK_ETAPAS = [
 ]
 
 export default function Funil() {
+  const navigate = useNavigate()
   const [leads, setLeads] = useState<any[]>([])
   const [etapas, setEtapas] = useState<string[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -54,8 +55,12 @@ export default function Funil() {
         pb.collection('users').getFullList({ sort: 'name' }),
       ])
       setLeads(l)
-      if (e.length > 0) setEtapas(e.map((et) => et.nome_etapa))
-      else setEtapas(FALLBACK_ETAPAS)
+      if (e.length > 0) {
+        const uniqueEtapas = Array.from(new Set(e.map((et) => et.nome_etapa)))
+        setEtapas(uniqueEtapas)
+      } else {
+        setEtapas(FALLBACK_ETAPAS)
+      }
       setUsuarios(u)
     } catch (error) {
       console.error(error)
@@ -335,7 +340,7 @@ export default function Funil() {
                                   className="h-6 w-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    setSelectedLead(lead)
+                                    navigate(`/crm/leads/${lead.id}/detalhes`)
                                   }}
                                 >
                                   <ArrowRight className="h-3 w-3" />
@@ -353,17 +358,6 @@ export default function Funil() {
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-      )}
-
-      {selectedLead && (
-        <LeadDetails
-          lead={selectedLead}
-          open={!!selectedLead}
-          onOpenChange={(v: boolean) => {
-            if (!v) setSelectedLead(null)
-          }}
-          onUpdated={loadData}
-        />
       )}
 
       <LeadForm open={isFormOpen} onOpenChange={setIsFormOpen} onSuccess={loadData} />

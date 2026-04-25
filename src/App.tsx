@@ -26,6 +26,7 @@ import Diagnostico from './pages/Diagnostico'
 import DiagnosticoRecibos from './pages/DiagnosticoRecibos'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import LeadDetalhes from './pages/crm/LeadDetalhes'
 import { AuthProvider, useAuth } from '@/hooks/use-auth'
 import { Navigate, useLocation } from 'react-router-dom'
 
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/crm/funil-vendas" element={<Funil />} />
             <Route path="/crm/funil" element={<Navigate to="/crm/funil-vendas" replace />} />
             <Route path="/crm/leads" element={<Leads />} />
+            <Route path="/crm/leads/:id/detalhes" element={<LeadDetalhes />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/configuracoes/saldo-inicial" element={<ConfiguracoesSaldoInicial />} />

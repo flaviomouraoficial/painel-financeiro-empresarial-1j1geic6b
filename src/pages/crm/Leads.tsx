@@ -4,16 +4,16 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LeadForm } from '@/components/crm/lead-form'
-import { LeadDetails } from '@/components/crm/lead-details'
 import { Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
 
 export default function Leads() {
+  const navigate = useNavigate()
   const [leads, setLeads] = useState<any[]>([])
   const [formOpen, setFormOpen] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
 
   const loadData = async () => setLeads(await getLeads())
@@ -30,8 +30,7 @@ export default function Leads() {
   }
 
   const openDetails = (lead: any) => {
-    setSelectedLead(lead)
-    setDetailsOpen(true)
+    navigate(`/crm/leads/${lead.id}/detalhes`)
   }
 
   const handleNew = () => {
@@ -114,7 +113,6 @@ export default function Leads() {
         onOpenChange={setFormOpen}
         onSuccess={loadData}
       />
-      <LeadDetails lead={selectedLead} open={detailsOpen} onOpenChange={setDetailsOpen} />
     </div>
   )
 }
