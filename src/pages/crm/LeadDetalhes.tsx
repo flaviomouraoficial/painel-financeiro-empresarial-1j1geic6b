@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils'
 import { exportToCsv, exportToExcel } from '@/lib/export-utils'
 import { exportToPdf } from '@/lib/pdf-export'
 import { useRealtime } from '@/hooks/use-realtime'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
@@ -264,17 +265,31 @@ export default function LeadDetalhes() {
     }
 
     formData.set('resumo', resumo)
-    formData.append('lead_id', lead.id)
-    formData.append('usuario_id', user.id)
+    formData.set('lead_id', lead.id)
+    if (user?.id) {
+      formData.set('usuario_id', user.id)
+    }
 
     const file = formData.get('arquivo') as File
     if (file && file.size === 0) formData.delete('arquivo')
+
+    // Clean up non-schema fields to avoid issues
+    const duracao = formData.get('duracao_minutos')
+    if (!duracao) formData.delete('duracao_minutos')
+
+    formData.delete('notas')
+    formData.delete('assunto')
+    formData.delete('local')
+    formData.delete('participantes')
+    formData.delete('tipo_documento_int')
 
     try {
       const dataInteracaoRaw = formData.get('data_interacao') as string
       const dataInteracao = dataInteracaoRaw
         ? new Date(dataInteracaoRaw).toISOString()
         : new Date().toISOString()
+
+      formData.set('data_interacao', dataInteracao)
 
       await pb.collection('interacoes_leads').create(formData)
 
@@ -296,7 +311,8 @@ export default function LeadDetalhes() {
     } catch (err: any) {
       console.error('Erro do PocketBase:', err)
       toast({
-        title: 'erro ao registrar a interação. verifique as permissões ou campos obrigatórios',
+        title: 'Erro ao registrar a interação',
+        description: getErrorMessage(err),
         variant: 'destructive',
       })
     } finally {
