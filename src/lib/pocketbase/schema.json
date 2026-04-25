@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T17:01:55.012Z",
+  "generatedAt": "2026-04-25T18:01:50.334Z",
   "collections": [
     {
       "name": "users",
@@ -7,7 +7,7 @@
       "apiRules": {
         "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
         "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
-        "create": "",
+        "create": "@request.auth.perfil = 'admin'",
         "update": "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'admin')",
         "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
       },
@@ -1825,11 +1825,11 @@
       "name": "leads",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "view": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "create": "@request.auth.id != '' && usuario_id = @request.auth.id",
-        "update": "@request.auth.id != '' && (usuario_id = @request.auth.id || consultor_id = @request.auth.id || @request.auth.perfil = 'admin')",
-        "delete": "@request.auth.perfil = 'admin' && empresa_id = @request.auth.empresa_id"
+        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "create": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "update": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "delete": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id"
       },
       "fields": [
         {
