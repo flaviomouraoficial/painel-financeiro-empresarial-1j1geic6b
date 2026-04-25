@@ -10,6 +10,7 @@ import {
   Building2,
   Activity,
   ChevronRight,
+  Target,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
@@ -35,6 +36,14 @@ const navGroups = [
     items: [
       { title: 'Visão Geral', url: '/dashboard' },
       { title: 'Dashboard Executivo', url: '/dashboard-avancado' },
+    ],
+  },
+  {
+    title: 'CRM',
+    icon: Target,
+    items: [
+      { title: 'Funil de Vendas', url: '/crm/funil' },
+      { title: 'Leads', url: '/crm/leads' },
     ],
   },
   {

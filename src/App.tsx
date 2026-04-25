@@ -17,6 +17,8 @@ import RelatoriosEbitda from './pages/RelatoriosEbitda'
 import RelatoriosFluxoCaixa from './pages/RelatoriosFluxoCaixa'
 import RelatoriosPlanejadoRealizado from './pages/RelatoriosPlanejadoRealizado'
 import RecibosDespesas from './pages/RecibosDespesas'
+import Funil from './pages/crm/Funil'
+import Leads from './pages/crm/Leads'
 import Usuarios from './pages/Usuarios'
 import Configuracoes from './pages/Configuracoes'
 import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
@@ -69,6 +71,8 @@ const App = () => (
               path="/relatorios/planejado-realizado"
               element={<RelatoriosPlanejadoRealizado />}
             />
+            <Route path="/crm/funil" element={<Funil />} />
+            <Route path="/crm/leads" element={<Leads />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/configuracoes/saldo-inicial" element={<ConfiguracoesSaldoInicial />} />
