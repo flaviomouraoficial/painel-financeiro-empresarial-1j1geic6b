@@ -17,6 +17,8 @@ import { LineChart, Line, XAxis, CartesianGrid, Tooltip as RechartsTooltip, Lege
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Download, AlertCircle, FileX2, TrendingUp, TrendingDown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addDays } from 'date-fns'
+import { DateRange } from 'react-day-picker'
+import { PeriodSelector } from '@/components/ui/period-selector'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,12 +30,22 @@ export default function RelatoriosFluxoCaixa() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<any>(null)
-  const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [periodoPreset, setPeriodoPreset] = useState('mes_atual')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
   const [tipoRelatorio, setTipoRelatorio] = useState('ambos')
 
   const fetchFluxoCaixa = async () => {
-    if (!dataInicio || !dataFim || dataFim < dataInicio) {
+    if (!dateRange?.from || !dateRange?.to) {
+      return
+    }
+
+    const dataInicio = format(dateRange.from, 'yyyy-MM-dd')
+    const dataFim = format(dateRange.to, 'yyyy-MM-dd')
+
+    if (dataFim < dataInicio) {
       toast.error('Período inválido')
       return
     }
@@ -156,6 +168,8 @@ export default function RelatoriosFluxoCaixa() {
 
   const exportarCsv = () => {
     if (!data || data.empty) return
+    const dataInicio = format(dateRange?.from || new Date(), 'yyyy-MM-dd')
+    const dataFim = format(dateRange?.to || new Date(), 'yyyy-MM-dd')
     const csvRows = [
       ['Descricao', 'Projetado', 'Realizado', 'Diferenca'],
       ['Saldo Inicial', data.saldoInicial, data.saldoInicial, 0],
@@ -191,7 +205,7 @@ export default function RelatoriosFluxoCaixa() {
 
   useEffect(() => {
     fetchFluxoCaixa()
-  }, [])
+  }, [dateRange])
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -203,17 +217,11 @@ export default function RelatoriosFluxoCaixa() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <Input
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            className="w-[130px]"
-          />
-          <Input
-            type="date"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-            className="w-[130px]"
+          <PeriodSelector
+            date={dateRange}
+            setDate={setDateRange}
+            preset={periodoPreset}
+            setPreset={setPeriodoPreset}
           />
           <Select value={tipoRelatorio} onValueChange={setTipoRelatorio}>
             <SelectTrigger className="w-[120px]">
@@ -271,8 +279,8 @@ export default function RelatoriosFluxoCaixa() {
           </p>
           <Button
             onClick={() => {
-              setDataInicio(format(startOfMonth(addDays(new Date(), -30)), 'yyyy-MM-dd'))
-              fetchFluxoCaixa()
+              setPeriodoPreset('mes_atual')
+              setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })
             }}
             variant="outline"
             className="mt-4"
@@ -302,7 +310,11 @@ export default function RelatoriosFluxoCaixa() {
                 >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <RechartsTooltip
+                    content={
+                      <ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />
+                    }
+                  />
                   <Legend />
                   {tipoRelatorio !== 'realizado' && (
                     <Line

@@ -17,6 +17,8 @@ import { BarChart, Bar, XAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 import { Download, AlertCircle, FileX2, ArrowUp, ArrowDown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { DateRange } from 'react-day-picker'
+import { PeriodSelector } from '@/components/ui/period-selector'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,12 +30,22 @@ export default function RelatoriosPlanejadoRealizado() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<any>(null)
-  const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [periodoPreset, setPeriodoPreset] = useState('mes_atual')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
   const [agrupamento, setAgrupamento] = useState('projeto')
 
   const fetchPlanejadoRealizado = async () => {
-    if (!dataInicio || !dataFim || dataFim < dataInicio) {
+    if (!dateRange?.from || !dateRange?.to) {
+      return
+    }
+
+    const dataInicio = format(dateRange.from, 'yyyy-MM-dd')
+    const dataFim = format(dateRange.to, 'yyyy-MM-dd')
+
+    if (dataFim < dataInicio) {
       toast.error('Período inválido')
       return
     }
@@ -201,13 +213,15 @@ export default function RelatoriosPlanejadoRealizado() {
     link.setAttribute('download', `PlanejadoRealizado_${dataInicio}_a_${dataFim}.csv`)
     document.body.appendChild(link)
     link.click()
+    const dataInicio = format(dateRange?.from || new Date(), 'yyyy-MM-dd')
+    const dataFim = format(dateRange?.to || new Date(), 'yyyy-MM-dd')
     document.body.removeChild(link)
     toast.success('CSV gerado com sucesso')
   }
 
   useEffect(() => {
     fetchPlanejadoRealizado()
-  }, [])
+  }, [dateRange])
   const isCategoria = agrupamento === 'categoria'
 
   return (
@@ -218,17 +232,11 @@ export default function RelatoriosPlanejadoRealizado() {
           <p className="text-muted-foreground text-sm">Comparativo de metas e orçamentos reais</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <Input
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            className="w-[130px]"
-          />
-          <Input
-            type="date"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-            className="w-[130px]"
+          <PeriodSelector
+            date={dateRange}
+            setDate={setDateRange}
+            preset={periodoPreset}
+            setPreset={setPeriodoPreset}
           />
           <Select value={agrupamento} onValueChange={setAgrupamento}>
             <SelectTrigger className="w-[160px]">
@@ -290,8 +298,8 @@ export default function RelatoriosPlanejadoRealizado() {
           </p>
           <Button
             onClick={() => {
-              setDataInicio(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-              fetchPlanejadoRealizado()
+              setPeriodoPreset('mes_atual')
+              setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })
             }}
             variant="outline"
             className="mt-4"
@@ -318,7 +326,11 @@ export default function RelatoriosPlanejadoRealizado() {
                 <BarChart data={data.chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
-                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <RechartsTooltip
+                    content={
+                      <ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />
+                    }
+                  />
                   <Legend />
                   <Bar dataKey="Planejado" fill="var(--color-Planejado)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Realizado" fill="var(--color-Realizado)" radius={[4, 4, 0, 0]} />

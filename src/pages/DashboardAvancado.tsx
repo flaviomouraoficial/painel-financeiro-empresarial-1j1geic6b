@@ -4,6 +4,7 @@ import pb from '@/lib/pocketbase/client'
 import { KpiCards } from '@/components/dashboard/kpi-cards'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { AlertsTable } from '@/components/dashboard/alerts-table'
+import { CashTrendChart } from '@/components/dashboard/cash-trend-chart'
 import {
   Select,
   SelectContent,
@@ -79,6 +80,7 @@ export default function DashboardAvancado() {
             <div className="col-span-1">
               <AlertsTable data={data} />
             </div>
+            <CashTrendChart data={data} />
           </div>
         </>
       )}

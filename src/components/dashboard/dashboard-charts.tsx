@@ -20,6 +20,7 @@ import {
   Cell,
 } from 'recharts'
 import { format } from 'date-fns'
+import { formatCurrency } from '@/lib/format'
 
 export function DashboardCharts({ data, periodo }: { data: any; periodo: number }) {
   const cutoffDate = new Date()
@@ -55,7 +56,9 @@ export function DashboardCharts({ data, periodo }: { data: any; periodo: number 
             <XAxis dataKey="date" />
             <YAxis />
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={<ChartTooltipContent formatter={(val) => formatCurrency(val as number)} />}
+            />
             <ChartLegend content={<ChartLegendContent />} />
             <Line type="monotone" dataKey="receita" stroke="var(--color-receita)" strokeWidth={2} />
             <Line type="monotone" dataKey="despesa" stroke="var(--color-despesa)" strokeWidth={2} />
