@@ -11,6 +11,7 @@ import {
   Activity,
   ChevronRight,
   Target,
+  BookOpen,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
@@ -80,6 +81,11 @@ const navGroups = [
       { title: 'Fluxo de Caixa', url: '/relatorios/fluxo-caixa' },
       { title: 'Planejado x Realizado', url: '/relatorios/planejado-realizado' },
     ],
+  },
+  {
+    title: 'BIBLIOTECA',
+    icon: BookOpen,
+    items: [{ title: 'Acervo', url: '/biblioteca' }],
   },
 ]
 

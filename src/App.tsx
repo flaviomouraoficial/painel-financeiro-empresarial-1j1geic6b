@@ -25,6 +25,7 @@ import Configuracoes from './pages/Configuracoes'
 import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
 import Diagnostico from './pages/Diagnostico'
 import DiagnosticoRecibos from './pages/DiagnosticoRecibos'
+import Biblioteca from './pages/Biblioteca'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import LeadDetalhes from './pages/crm/LeadDetalhes'
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/configuracoes/saldo-inicial" element={<ConfiguracoesSaldoInicial />} />
             <Route path="/diagnostico" element={<Diagnostico />} />
             <Route path="/diagnostico-recibos" element={<DiagnosticoRecibos />} />
+            <Route path="/biblioteca" element={<Biblioteca />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

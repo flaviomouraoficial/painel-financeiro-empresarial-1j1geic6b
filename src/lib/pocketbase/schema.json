@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T19:49:54.854Z",
+  "generatedAt": "2026-04-27T14:57:40.230Z",
   "collections": [
     {
       "name": "users",
@@ -2194,6 +2194,75 @@
       "indexes": [
         "CREATE INDEX idx_etapas_empresa ON etapas_funil (empresa_id)",
         "CREATE INDEX idx_etapas_ordem ON etapas_funil (ordem)"
+      ]
+    },
+    {
+      "name": "livros",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "create": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "update": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id",
+        "delete": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && @request.auth.perfil != 'usuario'"
+      },
+      "fields": [
+        {
+          "name": "empresa_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "empresas"
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "autor",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "palavras_chave",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_livros_empresa ON livros (empresa_id)",
+        "CREATE INDEX idx_livros_usuario ON livros (usuario_id)"
       ]
     }
   ]
