@@ -86,7 +86,22 @@ export default function Configuracoes() {
       const formData = new FormData()
       formData.append('name', perfil.name || '')
       formData.append('email', perfil.email || '')
-      if (avatarFile) formData.append('avatar', avatarFile)
+
+      if (avatarFile) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+        if (!validTypes.includes(avatarFile.type)) {
+          setPerfilErrors({ avatar: 'Formato inválido. Use JPG, PNG ou WEBP.' })
+          setIsSavingPerfil(false)
+          return
+        }
+        if (avatarFile.size > 5242880) {
+          // 5MB limit
+          setPerfilErrors({ avatar: 'A imagem deve ter no máximo 5MB.' })
+          setIsSavingPerfil(false)
+          return
+        }
+        formData.append('avatar', avatarFile)
+      }
 
       const updatedUser = await pb.collection('users').update(user.id, formData)
 
@@ -97,7 +112,11 @@ export default function Configuracoes() {
 
       pb.authStore.save(pb.authStore.token, updatedUser)
 
-      toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso.' })
+      toast({
+        title: 'Sucesso',
+        description: 'Perfil atualizado com sucesso!',
+        className: 'bg-emerald-600 text-white border-none',
+      })
     } catch (err: any) {
       const errors = extractFieldErrors(err)
       if (Object.keys(errors).length > 0) {
@@ -297,7 +316,7 @@ export default function Configuracoes() {
                     <Input
                       key={avatarFile ? 'file-selected' : 'file-empty'}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg, image/png, image/webp"
                       onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
                       className={perfilErrors.avatar ? 'border-red-500' : ''}
                     />
