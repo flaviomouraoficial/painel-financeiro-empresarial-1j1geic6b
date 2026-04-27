@@ -205,7 +205,11 @@ export function AppHeader() {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={`https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'admin'}`}
+                    src={
+                      user?.avatar
+                        ? pb.files.getURL(user, user.avatar)
+                        : `https://img.usecurling.com/ppl/thumbnail?seed=${user?.id || 'admin'}`
+                    }
                   />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>

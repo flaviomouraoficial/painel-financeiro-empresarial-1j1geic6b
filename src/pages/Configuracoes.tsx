@@ -95,6 +95,8 @@ export default function Configuracoes() {
       }
       setAvatarFile(null)
 
+      pb.authStore.save(pb.authStore.token, updatedUser)
+
       toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso.' })
     } catch (err: any) {
       const errors = extractFieldErrors(err)
