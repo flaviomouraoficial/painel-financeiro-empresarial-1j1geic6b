@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { TableRow, TableCell } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
@@ -203,7 +204,16 @@ export default function ProdutosList() {
                 <TableCell className="capitalize">{item.tipo}</TableCell>
                 <TableCell>{item.categoria || '-'}</TableCell>
                 <TableCell>
-                  {item.preco_unitario != null ? formatCurrency(item.preco_unitario) : '-'}
+                  {item.preco_unitario != null ? (
+                    formatCurrency(item.preco_unitario)
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className="font-normal text-muted-foreground whitespace-nowrap"
+                    >
+                      Sob Consulta
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   {item.ativo ? (
