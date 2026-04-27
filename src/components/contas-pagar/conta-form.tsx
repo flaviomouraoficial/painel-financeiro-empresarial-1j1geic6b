@@ -27,7 +27,7 @@ import { getErrorMessage } from '@/lib/pocketbase/errors'
 const schema = z
   .object({
     id: z.string().optional(),
-    fornecedor_id: z.string().min(1, 'Fornecedor é obrigatório'),
+    fornecedor_id: z.string().optional(),
     descricao: z.string().min(1, 'Descrição é obrigatória'),
     valor_total: z.coerce.number().positive('O valor deve ser maior que zero'),
     data_vencimento: z.string().min(1, 'Vencimento é obrigatório'),
@@ -60,7 +60,7 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
     resolver: zodResolver(schema),
     defaultValues: {
       id: '',
-      fornecedor_id: '',
+      fornecedor_id: 'none',
       descricao: '',
       valor_total: 0,
       data_vencimento: '',
@@ -80,7 +80,7 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
       } else {
         form.reset({
           id: '',
-          fornecedor_id: '',
+          fornecedor_id: 'none',
           descricao: '',
           valor_total: 0,
           data_vencimento: '',
@@ -98,12 +98,29 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
   const onSubmit = async (values: any) => {
     setLoading(true)
     try {
-      if (values.id) {
-        await updateContaPagar(values.id, values)
+      const payload = { ...values }
+
+      if (payload.fornecedor_id === 'none' || !payload.fornecedor_id) payload.fornecedor_id = null
+      if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = null
+      if (payload.centro_custo_id === 'none' || !payload.centro_custo_id)
+        payload.centro_custo_id = null
+
+      if (
+        payload.data_vencimento &&
+        !payload.data_vencimento.includes('T') &&
+        !payload.data_vencimento.includes(' ')
+      ) {
+        payload.data_vencimento = payload.data_vencimento + ' 12:00:00.000Z'
+      }
+
+      if (payload.id) {
+        await updateContaPagar(payload.id, payload)
         toast({ title: 'Conta atualizada com sucesso', className: 'bg-green-500 text-white' })
       } else {
+        delete payload.id
+        payload.data_emissao = new Date().toISOString()
         await createContaPagar({
-          ...values,
+          ...payload,
           status: 'pendente',
           empresa_id: user.empresa_id,
           usuario_id: user.id,
@@ -171,8 +188,11 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
             <div className="grid grid-cols-2 gap-4">
               <Field
                 name="fornecedor_id"
-                label="Fornecedor"
-                options={cadastros.fornecedores.map((f: any) => ({ value: f.id, label: f.nome }))}
+                label="Fornecedor (Opcional)"
+                options={[
+                  { value: 'none', label: 'Nenhum' },
+                  ...cadastros.fornecedores.map((f: any) => ({ value: f.id, label: f.nome })),
+                ]}
               />
               <Field name="descricao" label="Descrição" />
               <Field name="valor_total" label="Valor" type="number" />
@@ -181,13 +201,19 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
               <Field name="numero_nf" label="Número NF" />
               <Field
                 name="projeto_id"
-                label="Projeto"
-                options={cadastros.projetos.map((p: any) => ({ value: p.id, label: p.nome }))}
+                label="Projeto (Opcional)"
+                options={[
+                  { value: 'none', label: 'Nenhum' },
+                  ...cadastros.projetos.map((p: any) => ({ value: p.id, label: p.nome })),
+                ]}
               />
               <Field
                 name="centro_custo_id"
-                label="Centro de Custo"
-                options={cadastros.centros.map((c: any) => ({ value: c.id, label: c.nome }))}
+                label="Centro de Custo (Opcional)"
+                options={[
+                  { value: 'none', label: 'Nenhum' },
+                  ...cadastros.centros.map((c: any) => ({ value: c.id, label: c.nome })),
+                ]}
               />
             </div>
             <Field name="observacoes" label="Observações" />

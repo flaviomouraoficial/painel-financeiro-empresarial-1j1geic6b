@@ -8,6 +8,7 @@ import {
   updateContaReceber,
   deleteContaReceber,
 } from '@/services/contas_receber'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { getClientes } from '@/services/clientes'
 import { getProjetos } from '@/services/projetos'
 import { createRecebimento } from '@/services/recebimentos'
@@ -93,17 +94,27 @@ export default function ContasReceber() {
     setIsSubmitting(true)
     try {
       const payload = { ...data, empresa_id: user.empresa_id }
+
+      if (
+        payload.data_vencimento &&
+        !payload.data_vencimento.includes('T') &&
+        !payload.data_vencimento.includes(' ')
+      ) {
+        payload.data_vencimento = payload.data_vencimento + ' 12:00:00.000Z'
+      }
+
       if (editingItem) {
         await updateContaReceber(editingItem.id, payload)
         toast({ title: 'Conta atualizada com sucesso' })
       } else {
         payload.status = 'pendente'
+        payload.data_emissao = new Date().toISOString()
         await createContaReceber(payload)
         toast({ title: 'Conta a receber criada com sucesso' })
       }
       setFormOpen(false)
     } catch (err) {
-      toast({ title: 'Erro ao salvar. Tente novamente.', variant: 'destructive' })
+      toast({ title: 'Erro ao salvar', description: getErrorMessage(err), variant: 'destructive' })
     } finally {
       setIsSubmitting(false)
     }
@@ -137,7 +148,11 @@ export default function ContasReceber() {
       toast({ title: 'Recebimento registrado com sucesso' })
       setReceberOpen(false)
     } catch (err) {
-      toast({ title: 'Erro ao registrar recebimento.', variant: 'destructive' })
+      toast({
+        title: 'Erro ao registrar recebimento',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -150,7 +165,11 @@ export default function ContasReceber() {
       toast({ title: 'Conta deletada com sucesso' })
       setDeleteOpen(false)
     } catch (err) {
-      toast({ title: 'Erro ao deletar conta.', variant: 'destructive' })
+      toast({
+        title: 'Erro ao deletar conta',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
     } finally {
       setIsSubmitting(false)
     }

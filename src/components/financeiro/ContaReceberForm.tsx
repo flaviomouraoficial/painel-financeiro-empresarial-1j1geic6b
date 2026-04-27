@@ -24,7 +24,7 @@ import { Loader2 } from 'lucide-react'
 const getSchema = (isNew: boolean) =>
   z
     .object({
-      cliente_id: z.string().min(1, 'Cliente é obrigatório'),
+      cliente_id: z.string().optional(),
       descricao: z.string().min(1, 'Descrição é obrigatória'),
       valor_total: z.coerce.number().positive('Valor deve ser maior que 0'),
       data_vencimento: z.string().min(1, 'Data de Vencimento é obrigatória'),
@@ -68,7 +68,7 @@ export function ContaReceberForm({
   const form = useForm({
     resolver: zodResolver(getSchema(isNew)),
     defaultValues: defaultValues || {
-      cliente_id: '',
+      cliente_id: 'none',
       descricao: '',
       valor_total: '',
       data_vencimento: '',
@@ -81,8 +81,10 @@ export function ContaReceberForm({
   })
 
   const handleSubmit = (data: any) => {
-    if (data.projeto_id === 'none') data.projeto_id = null
-    onSubmit(data)
+    const payload = { ...data }
+    if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = null
+    if (payload.cliente_id === 'none' || !payload.cliente_id) payload.cliente_id = null
+    onSubmit(payload)
   }
 
   return (
@@ -94,14 +96,15 @@ export function ContaReceberForm({
             name="cliente_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cliente</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Cliente (Opcional)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
+                      <SelectValue placeholder="Nenhum" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {clientes.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.nome}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, FilterX } from 'lucide-react'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { getContasPagar, deleteContaPagar } from '@/services/contas-pagar'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -78,7 +79,11 @@ export default function ContasPagar() {
       toast({ title: 'Conta deletada com sucesso', className: 'bg-green-500 text-white' })
       setDeleteOpen(false)
     } catch (error) {
-      toast({ title: 'Erro ao deletar', variant: 'destructive' })
+      toast({
+        title: 'Erro ao deletar',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      })
     }
   }
 
