@@ -2,7 +2,16 @@ import { exportToPdf } from '@/lib/pdf-export'
 import { formatCurrency, formatDate } from '@/lib/format'
 
 export async function generateReciboPDF(recibo: any, itens: any[], empresa?: any) {
+  const totalRecibo = itens.reduce((a, b) => a + b.quantidade * b.valor_unitario, 0)
+
   const tableHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb;">
+      <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111827;">RECIBO DE DESPESA DE VIAGEM</h2>
+      <div style="text-align: right;">
+        <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Valor do recibo</div>
+        <div style="font-size: 24px; font-weight: bold; color: #268C83;">${formatCurrency(totalRecibo)}</div>
+      </div>
+    </div>
     <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px;">
       <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
         <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados do Recibo</h3>
@@ -22,7 +31,6 @@ export async function generateReciboPDF(recibo: any, itens: any[], empresa?: any
         <p style="margin: 4px 0;"><strong>Número NF:</strong> ${recibo.numero_nf}</p>
         <p style="margin: 4px 0;"><strong>Data NF:</strong> ${formatDate(recibo.data_nf)}</p>
         <p style="margin: 4px 0;"><strong>Descrição:</strong> ${recibo.descricao_nf || '-'}</p>
-        <p style="margin: 4px 0;"><strong>Valor Total NF:</strong> ${formatCurrency(recibo.valor_nf)}</p>
       </div>
       <div style="flex: 1; min-width: 200px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb;">
         <h3 style="margin-top: 0; color: #268C83; font-size: 14px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Dados Bancários para Reembolso</h3>
@@ -66,7 +74,7 @@ export async function generateReciboPDF(recibo: any, itens: any[], empresa?: any
 
   await exportToPdf({
     filename: `${recibo.numero_recibo}.pdf`,
-    title: 'Recibo de Despesa de Viagem',
+    title: '',
     period: formatDate(recibo.data_criacao),
     tableHtml,
   })

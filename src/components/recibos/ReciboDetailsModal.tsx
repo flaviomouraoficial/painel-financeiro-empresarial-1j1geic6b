@@ -104,7 +104,7 @@ export default function ReciboDetailsModal({ open, onOpenChange, recibo }: any) 
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground mb-1">Valor Total do Recibo</p>
                   <p className="text-2xl font-bold text-[#268C83]">
-                    {formatCurrency(recibo.valor_nf)}
+                    {formatCurrency(itens.reduce((a, b) => a + b.quantidade * b.valor_unitario, 0))}
                   </p>
                 </div>
               </div>
