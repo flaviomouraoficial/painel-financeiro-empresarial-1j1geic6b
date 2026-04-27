@@ -83,3 +83,6 @@ export const updateRecibo = async (id: string, data: any, itens: any[]) => {
 }
 
 export const deleteRecibo = (id: string) => pb.collection('recibos').delete(id)
+
+export const updateReciboStatus = (id: string, status: string) =>
+  pb.collection('recibos').update(id, { status })

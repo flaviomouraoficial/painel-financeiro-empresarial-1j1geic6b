@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react'
-import { Plus, Eye, Edit, Trash2, FileText, ReceiptText } from 'lucide-react'
+import {
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  FileText,
+  ReceiptText,
+  CheckCircle,
+  DollarSign,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
-import { getRecibos, deleteRecibo, getReciboItens } from '@/services/recibos'
+import { getRecibos, deleteRecibo, getReciboItens, updateReciboStatus } from '@/services/recibos'
 import { generateReciboPDF } from '@/components/recibos/pdf'
 import { formatCurrency, formatDate } from '@/lib/format'
 import useRealtime from '@/hooks/use-realtime'
@@ -47,6 +56,16 @@ export default function RecibosDespesas() {
     load()
   }, [])
   useRealtime('recibos', load)
+
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      await updateReciboStatus(id, status)
+      toast({ title: `Status atualizado para ${status}`, duration: 3000 })
+      load()
+    } catch (e) {
+      toast({ title: 'Erro ao atualizar status', variant: 'destructive', duration: 5000 })
+    }
+  }
 
   const handleDelete = async () => {
     if (!selected) return
@@ -169,9 +188,30 @@ export default function RecibosDespesas() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-1">
+                        {r.status === 'pendente' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Aprovar Recibo"
+                            onClick={() => handleStatusChange(r.id, 'aprovado')}
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </Button>
+                        )}
+                        {r.status === 'aprovado' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Marcar como Reembolsado"
+                            onClick={() => handleStatusChange(r.id, 'reembolsado')}
+                          >
+                            <DollarSign className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Ver Detalhes"
                           onClick={() => {
                             setSelected(r)
                             setDetailsOpen(true)
@@ -179,13 +219,19 @@ export default function RecibosDespesas() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handlePdf(r)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Gerar PDF"
+                          onClick={() => handlePdf(r)}
+                        >
                           <FileText className="h-4 w-4 text-blue-600" />
                         </Button>
                         {r.status === 'pendente' && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Editar"
                             onClick={() => {
                               setSelected(r)
                               setFormOpen(true)
