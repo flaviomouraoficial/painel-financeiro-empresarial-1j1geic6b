@@ -84,7 +84,14 @@ export default function ProdutosList() {
   }
 
   const validateForm = async () => {
-    if (Number(formData.preco_unitario) <= 0) return 'O preço unitário deve ser maior que zero.'
+    if (
+      formData.preco_unitario !== undefined &&
+      formData.preco_unitario !== '' &&
+      formData.preco_unitario !== null &&
+      Number(formData.preco_unitario) < 0
+    ) {
+      return 'O preço unitário não pode ser negativo.'
+    }
     if (formData.sku) {
       const res = await pb
         .collection('produtos_servicos')
@@ -107,7 +114,12 @@ export default function ProdutosList() {
     try {
       const payload = {
         ...formData,
-        preco_unitario: Number(formData.preco_unitario),
+        preco_unitario:
+          formData.preco_unitario !== '' &&
+          formData.preco_unitario !== undefined &&
+          formData.preco_unitario !== null
+            ? Number(formData.preco_unitario)
+            : null,
         estoque: Number(formData.estoque || 0),
         empresa_id: user.empresa_id,
       }
@@ -190,7 +202,9 @@ export default function ProdutosList() {
                 <TableCell className="font-medium">{item.nome}</TableCell>
                 <TableCell className="capitalize">{item.tipo}</TableCell>
                 <TableCell>{item.categoria || '-'}</TableCell>
-                <TableCell>{formatCurrency(item.preco_unitario)}</TableCell>
+                <TableCell>
+                  {item.preco_unitario != null ? formatCurrency(item.preco_unitario) : '-'}
+                </TableCell>
                 <TableCell>
                   {item.ativo ? (
                     <span className="text-green-600 font-medium">Sim</span>
@@ -265,13 +279,13 @@ export default function ProdutosList() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Preço Unitário *</Label>
+                <Label>Preço Unitário</Label>
                 <Input
-                  required
                   type="number"
                   step="0.01"
-                  value={formData.preco_unitario || ''}
+                  value={formData.preco_unitario ?? ''}
                   onChange={(e) => setFormData({ ...formData, preco_unitario: e.target.value })}
+                  placeholder="Opcional"
                 />
               </div>
               <div className="space-y-2">
