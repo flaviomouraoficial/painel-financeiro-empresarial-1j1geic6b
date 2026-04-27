@@ -8,9 +8,16 @@ export interface Livro {
   autor: string
   palavras_chave: string[] | null
   descricao: string
+  arquivo?: string
   created: string
   updated: string
   expand?: any
+  _pending?: boolean
+}
+
+export const getLivroFileUrl = (record: Livro) => {
+  if (!record.arquivo) return ''
+  return pb.files.getURL(record as any, record.arquivo)
 }
 
 export const getLivros = (search?: string) => {
@@ -26,7 +33,8 @@ export const getLivros = (search?: string) => {
   })
 }
 
-export const createLivro = (data: Partial<Livro>) => pb.collection('livros').create<Livro>(data)
-export const updateLivro = (id: string, data: Partial<Livro>) =>
+export const createLivro = (data: Partial<Livro> | FormData) =>
+  pb.collection('livros').create<Livro>(data)
+export const updateLivro = (id: string, data: Partial<Livro> | FormData) =>
   pb.collection('livros').update<Livro>(id, data)
 export const deleteLivro = (id: string) => pb.collection('livros').delete(id)
