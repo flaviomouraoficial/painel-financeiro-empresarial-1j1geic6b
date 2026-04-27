@@ -22,17 +22,24 @@ export function useRealtime(
     let unsubscribeFn: (() => Promise<void>) | undefined
     let cancelled = false
 
-    pb.collection(collectionName)
-      .subscribe('*', (e) => {
-        callbackRef.current(e)
-      })
-      .then((fn) => {
-        if (cancelled) {
-          fn().catch(() => {})
-        } else {
-          unsubscribeFn = fn
-        }
-      })
+    try {
+      pb.collection(collectionName)
+        .subscribe('*', (e) => {
+          callbackRef.current(e)
+        })
+        .then((fn) => {
+          if (cancelled) {
+            fn().catch(() => {})
+          } else {
+            unsubscribeFn = fn
+          }
+        })
+        .catch((err) => {
+          console.warn(`[useRealtime] Failed to subscribe to ${collectionName}:`, err)
+        })
+    } catch (err) {
+      console.warn(`[useRealtime] Error initiating subscription for ${collectionName}:`, err)
+    }
 
     return () => {
       cancelled = true

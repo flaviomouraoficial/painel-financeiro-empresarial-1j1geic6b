@@ -50,7 +50,9 @@ export default function Biblioteca() {
   const loadData = async () => {
     try {
       setLivros(await getLivros(search))
-    } catch {
+    } catch (error) {
+      const err = error as any
+      if (err?.isAbort || err?.status === 0) return
       toast({
         title: 'Erro',
         description: 'Falha ao carregar a biblioteca.',
@@ -66,7 +68,15 @@ export default function Biblioteca() {
     return () => clearTimeout(timer)
   }, [search])
 
-  useRealtime('livros', loadData)
+  useRealtime(
+    'livros',
+    (e) => {
+      if (e.record?.empresa_id === user?.empresa_id) {
+        loadData()
+      }
+    },
+    !!user?.id,
+  )
 
   const openDialog = (livro?: Livro) => {
     setSelectedLivro(livro || null)
