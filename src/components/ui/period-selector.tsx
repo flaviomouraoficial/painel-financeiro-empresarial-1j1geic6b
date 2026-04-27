@@ -28,6 +28,9 @@ export function PeriodSelector({
   setPreset: (preset: string) => void
   className?: string
 }) {
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: currentYear - 2021 }, (_, i) => currentYear - i)
+
   const handlePresetChange = (value: string) => {
     setPreset(value)
     const today = new Date()
@@ -37,6 +40,14 @@ export function PeriodSelector({
       setDate({ from: subDays(today, 6), to: today })
     } else if (value === 'mes_atual') {
       setDate({ from: startOfMonth(today), to: endOfMonth(today) })
+    } else if (value === 'ano_atual') {
+      setDate({
+        from: new Date(today.getFullYear(), 0, 1),
+        to: new Date(today.getFullYear(), 11, 31),
+      })
+    } else if (value.startsWith('ano_')) {
+      const year = parseInt(value.split('_')[1], 10)
+      setDate({ from: new Date(year, 0, 1), to: new Date(year, 11, 31) })
     }
   }
 
@@ -50,6 +61,12 @@ export function PeriodSelector({
           <SelectItem value="hoje">Hoje</SelectItem>
           <SelectItem value="7_dias">Últimos 7 dias</SelectItem>
           <SelectItem value="mes_atual">Mês Atual</SelectItem>
+          <SelectItem value="ano_atual">Ano Atual ({currentYear})</SelectItem>
+          {years.map((y) => (
+            <SelectItem key={`ano_${y}`} value={`ano_${y}`}>
+              Ano {y}
+            </SelectItem>
+          ))}
           <SelectItem value="personalizado">Personalizado</SelectItem>
         </SelectContent>
       </Select>

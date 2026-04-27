@@ -11,13 +11,8 @@ import { Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChartContainer, ChartTooltipContent, ChartConfig } from '@/components/ui/chart'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { PeriodSelector } from '@/components/ui/period-selector'
+import { useReportFilters } from '@/hooks/use-report-filters'
 import { formatCurrency } from '@/lib/format'
 
 const fluxoCaixaData = [
@@ -32,6 +27,8 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function Relatorios() {
+  const { dateRange, setDateRange, preset, setPreset } = useReportFilters()
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -41,16 +38,13 @@ export default function Relatorios() {
             Visualize a saúde financeira do seu negócio
           </p>
         </div>
-        <div className="flex gap-2">
-          <Select defaultValue="2023">
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2023">2023</SelectItem>
-              <SelectItem value="2022">2022</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <PeriodSelector
+            date={dateRange}
+            setDate={setDateRange}
+            preset={preset}
+            setPreset={setPreset}
+          />
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF

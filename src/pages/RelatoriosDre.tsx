@@ -1,13 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { ptBR } from 'date-fns/locale'
-import { CalendarIcon, FileText, SearchX, AlertCircle, RefreshCcw } from 'lucide-react'
+import { SearchX, AlertCircle, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ExportDropdown } from '@/components/ExportDropdown'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
@@ -19,7 +17,9 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
-import { listarLancamentos } from '@/services/lancamentos'
+import pb from '@/lib/pocketbase/client'
+import { useReportFilters } from '@/hooks/use-report-filters'
+import { PeriodSelector } from '@/components/ui/period-selector'
 import {
   PieChart,
   Pie,
@@ -30,15 +30,14 @@ import {
 } from 'recharts'
 
 export default function RelatoriosDre() {
-  const [dataInicio, setDataInicio] = useState<Date | undefined>(
-    new Date(new Date().getFullYear(), 0, 1),
-  )
-  const [dataFim, setDataFim] = useState<Date | undefined>(new Date())
+  const { dateRange, setDateRange, preset, setPreset } = useReportFilters()
+  const dataInicio = dateRange?.from
+  const dataFim = dateRange?.to
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lancamentos, setLancamentos] = useState<any[]>([])
   const [hasFetched, setHasFetched] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
 
   const gerarRelatorio = async () => {
@@ -46,10 +45,19 @@ export default function RelatoriosDre() {
     setLoading(true)
     setError('')
     try {
-      const res = await listarLancamentos({
-        data_inicio: format(dataInicio, 'yyyy-MM-dd'),
-        data_fim: format(dataFim, 'yyyy-MM-dd'),
+      const user = pb.authStore.record
+      if (!user) throw new Error('Não autenticado')
+
+      const startStr = format(dataInicio, 'yyyy-MM-dd')
+      const endStr = format(dataFim, 'yyyy-MM-dd')
+
+      const filterStr = `empresa_id = "${user.empresa_id}" && status = "confirmado" && ((data_competencia != "" && data_competencia >= "${startStr} 00:00:00" && data_competencia <= "${endStr} 23:59:59") || (data_competencia = "" && data_lancamento >= "${startStr} 00:00:00" && data_lancamento <= "${endStr} 23:59:59"))`
+
+      const res = await pb.collection('lancamentos').getFullList({
+        filter: filterStr,
+        expand: 'categoria_id',
       })
+
       setLancamentos(res)
       setHasFetched(true)
     } catch (e: any) {
@@ -58,6 +66,12 @@ export default function RelatoriosDre() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (dataInicio && dataFim && !hasFetched) {
+      gerarRelatorio()
+    }
+  }, [])
 
   let receitasBrutas = 0,
     deducoes = 0,
@@ -272,61 +286,13 @@ export default function RelatoriosDre() {
 
       <Card>
         <CardContent className="p-4 flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <div className="flex flex-col gap-1 w-full sm:w-auto">
-              <label className="text-[12px] font-medium">Data Início</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full sm:w-[200px] justify-start text-left font-normal',
-                      !dataInicio && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataInicio ? format(dataInicio, 'dd/MM/yyyy') : <span>Selecione</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dataInicio}
-                    onSelect={setDataInicio}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex flex-col gap-1 w-full sm:w-auto">
-              <label className="text-[12px] font-medium">Data Fim</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full sm:w-[200px] justify-start text-left font-normal',
-                      !dataFim && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataFim ? format(dataFim, 'dd/MM/yyyy') : <span>Selecione</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dataFim}
-                    onSelect={setDataFim}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center">
+            <PeriodSelector
+              date={dateRange}
+              setDate={setDateRange}
+              preset={preset}
+              setPreset={setPreset}
+            />
             <Button
               onClick={gerarRelatorio}
               disabled={loading || !dataInicio || !dataFim}
@@ -335,6 +301,8 @@ export default function RelatoriosDre() {
               {loading && <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />}
               Gerar Relatório
             </Button>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
             <ExportDropdown
               disabled={loading || !hasFetched || lancamentos.length === 0}
               onExportPdf={exportarPdf}

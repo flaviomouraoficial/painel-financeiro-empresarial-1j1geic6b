@@ -20,6 +20,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { PeriodSelector } from '@/components/ui/period-selector'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useReportFilters } from '@/hooks/use-report-filters'
 import { RefreshCcw } from 'lucide-react'
 import {
   DropdownMenu,
@@ -29,14 +30,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export default function RelatoriosPlanejadoRealizado() {
+  const {
+    dateRange,
+    setDateRange,
+    preset: periodoPreset,
+    setPreset: setPeriodoPreset,
+  } = useReportFilters()
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<any>(null)
-  const [periodoPreset, setPeriodoPreset] = useState('mes_atual')
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  })
   const [agrupamento, setAgrupamento] = useState('projeto')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 

@@ -5,8 +5,9 @@ import { RefreshCcw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ExportDropdown } from '@/components/ExportDropdown'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PeriodSelector } from '@/components/ui/period-selector'
+import { useReportFilters } from '@/hooks/use-report-filters'
 import { formatCurrency } from '@/lib/format'
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
@@ -14,30 +15,32 @@ import { Download, AlertCircle, FileX2 } from 'lucide-react'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 
 export default function RelatoriosEbitda() {
+  const { dateRange, setDateRange, preset, setPreset } = useReportFilters()
+  const dataInicioStr = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
+  const dataFimStr = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<any>(null)
-  const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [dataFim, setDataFim] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
-  const [isExporting, setIsExporting] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
 
   const fetchEbitda = async () => {
+    if (!dataInicioStr || !dataFimStr) return
     setLoading(true)
     setError(null)
     try {
       const user = pb.authStore.record
       if (!user) throw new Error('Não autenticado')
 
-      const start12MonthsAgo = format(subMonths(new Date(dataInicio), 11), 'yyyy-MM-dd')
+      const start12MonthsAgo = format(subMonths(new Date(dataInicioStr), 11), 'yyyy-MM-dd')
 
       const lancamentos = await pb.collection('lancamentos').getFullList({
-        filter: `empresa_id = "${user.empresa_id}" && data_lancamento >= "${start12MonthsAgo} 00:00:00" && data_lancamento <= "${dataFim} 23:59:59"`,
+        filter: `empresa_id = "${user.empresa_id}" && data_lancamento >= "${start12MonthsAgo} 00:00:00" && data_lancamento <= "${dataFimStr} 23:59:59"`,
         expand: 'categoria_id',
       })
 
       const periodLancamentos = lancamentos.filter(
-        (l) => l.data_lancamento >= dataInicio && l.data_lancamento <= dataFim,
+        (l) => l.data_lancamento >= dataInicioStr && l.data_lancamento <= dataFimStr,
       )
 
       if (periodLancamentos.length === 0) {
@@ -83,7 +86,7 @@ export default function RelatoriosEbitda() {
         { month: string; ebitda: number; receita: number; despesa: number }
       > = {}
       for (let i = 11; i >= 0; i--) {
-        const d = subMonths(new Date(dataFim), i)
+        const d = subMonths(new Date(dataFimStr), i)
         const m = format(d, 'MM/yyyy')
         chartMap[m] = { month: m, ebitda: 0, receita: 0, despesa: 0 }
       }
@@ -126,7 +129,7 @@ export default function RelatoriosEbitda() {
   }
 
   const exportarPdf = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
+    if (!dataInicioStr || !dataFimStr || !data || data.empty) return
     try {
       const { exportToPdf, captureChart } = await import('@/lib/pdf-export')
       const chartImg = captureChart(chartRef)
@@ -166,8 +169,8 @@ export default function RelatoriosEbitda() {
         </table>
       `
 
-      const startDate = new Date(dataInicio + 'T00:00:00')
-      const endDate = new Date(dataFim + 'T00:00:00')
+      const startDate = new Date(dataInicioStr + 'T00:00:00')
+      const endDate = new Date(dataFimStr + 'T00:00:00')
       const year = format(startDate, 'yyyy')
       const startMonth = format(startDate, 'MM')
       const endMonth = format(endDate, 'MM')
@@ -194,12 +197,12 @@ export default function RelatoriosEbitda() {
   }
 
   const exportarExcel = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
+    if (!dataInicioStr || !dataFimStr || !data || data.empty) return
     try {
       const { exportToExcel } = await import('@/lib/export-utils')
-      const year = format(new Date(dataInicio), 'yyyy')
-      const startMonth = format(new Date(dataInicio), 'MM')
-      const endMonth = format(new Date(dataFim), 'MM')
+      const year = format(new Date(dataInicioStr), 'yyyy')
+      const startMonth = format(new Date(dataInicioStr), 'MM')
+      const endMonth = format(new Date(dataFimStr), 'MM')
 
       const sheets = [
         {
@@ -231,12 +234,12 @@ export default function RelatoriosEbitda() {
   }
 
   const exportarCsv = async () => {
-    if (!dataInicio || !dataFim || !data || data.empty) return
+    if (!dataInicioStr || !dataFimStr || !data || data.empty) return
     try {
       const { exportToCsv } = await import('@/lib/export-utils')
-      const year = format(new Date(dataInicio), 'yyyy')
-      const startMonth = format(new Date(dataInicio), 'MM')
-      const endMonth = format(new Date(dataFim), 'MM')
+      const year = format(new Date(dataInicioStr), 'yyyy')
+      const startMonth = format(new Date(dataInicioStr), 'MM')
+      const endMonth = format(new Date(dataFimStr), 'MM')
 
       exportToCsv(`EBITDA_${year}_${startMonth}_a_${endMonth}.csv`, [
         ['Descrição', 'Valor'],
@@ -266,19 +269,17 @@ export default function RelatoriosEbitda() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <Input
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            className="w-[140px]"
+          <PeriodSelector
+            date={dateRange}
+            setDate={setDateRange}
+            preset={preset}
+            setPreset={setPreset}
           />
-          <Input
-            type="date"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-            className="w-[140px]"
-          />
-          <Button onClick={fetchEbitda} className="bg-[#268C83] hover:bg-teal-700 text-white">
+          <Button
+            onClick={fetchEbitda}
+            disabled={loading || !dataInicioStr || !dataFimStr}
+            className="bg-[#268C83] hover:bg-teal-700 text-white"
+          >
             Gerar Relatório
           </Button>
           <ExportDropdown
@@ -319,8 +320,9 @@ export default function RelatoriosEbitda() {
           </p>
           <Button
             onClick={() => {
-              setDataInicio(format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd'))
-              fetchEbitda()
+              setPreset('mes_atual')
+              const today = new Date()
+              setDateRange({ from: startOfMonth(today), to: endOfMonth(today) })
             }}
             variant="outline"
             className="mt-4"
