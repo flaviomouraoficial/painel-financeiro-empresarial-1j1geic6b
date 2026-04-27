@@ -26,6 +26,7 @@ import ConfiguracoesSaldoInicial from './pages/ConfiguracoesSaldoInicial'
 import Diagnostico from './pages/Diagnostico'
 import DiagnosticoRecibos from './pages/DiagnosticoRecibos'
 import Biblioteca from './pages/Biblioteca'
+import Auditoria from './pages/Auditoria'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import LeadDetalhes from './pages/crm/LeadDetalhes'
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/diagnostico" element={<Diagnostico />} />
             <Route path="/diagnostico-recibos" element={<DiagnosticoRecibos />} />
             <Route path="/biblioteca" element={<Biblioteca />} />
+            <Route path="/auditoria" element={<Auditoria />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

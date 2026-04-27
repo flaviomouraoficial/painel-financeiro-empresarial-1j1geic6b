@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Filter, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { ExportDropdown } from '@/components/ExportDropdown'
+import { exportToPdf } from '@/lib/pdf-export'
+import { exportToExcel } from '@/lib/export-utils'
+import { formatCurrency, formatDate } from '@/lib/format'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,6 +103,59 @@ export default function Lancamentos() {
     setIsFormOpen(true)
   }
 
+  const handleExportPdf = async () => {
+    const rows = lancamentos.map((t) => `
+      <tr>
+        <td>${formatDate(t.data_lancamento)}</td>
+        <td>${t.descricao}</td>
+        <td>${t.expand?.categoria_id?.nome || '-'}</td>
+        <td>${t.tipo === 'receita' ? 'Receita' : 'Despesa'}</td>
+        <td class="text-right">${formatCurrency(t.valor)}</td>
+      </tr>
+    `).join('')
+
+    const tableHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Descrição</th>
+            <th>Categoria</th>
+            <th>Tipo</th>
+            <th class="text-right">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: 'lancamentos.pdf',
+      title: 'Relatório de Lançamentos Financeiros',
+      period: filtroMes || 'Todos',
+      filters: \`Tipo: \${filtroTipo === 'todos' ? 'Todos' : filtroTipo}\`,
+      tableHtml,
+      userName: user?.name
+    })
+  }
+
+  const handleExportExcel = async () => {
+    const data = [
+      ['Data', 'Descrição', 'Categoria', 'Status', 'Tipo', 'Valor'],
+      ...lancamentos.map((t) => [
+        formatDate(t.data_lancamento),
+        t.descricao,
+        t.expand?.categoria_id?.nome || '-',
+        t.status || 'pendente',
+        t.tipo,
+        t.valor
+      ])
+    ]
+    exportToExcel('lancamentos.xlsx', [{ name: 'Lançamentos', data }])
+  }
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -120,6 +177,12 @@ export default function Lancamentos() {
             <ArrowDownRight className="mr-2 h-4 w-4" />
             Despesas
           </Button>
+          <ExportDropdown
+            onExportPdf={handleExportPdf}
+            onExportExcel={handleExportExcel}
+            disabled={lancamentos.length === 0}
+            className="w-full sm:w-auto"
+          />
           <Button onClick={() => openForm()} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Lançamento

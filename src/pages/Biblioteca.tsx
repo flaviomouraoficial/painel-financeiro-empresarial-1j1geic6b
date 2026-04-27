@@ -12,6 +12,9 @@ import {
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
+import { ExportDropdown } from '@/components/ExportDropdown'
+import { exportToPdf } from '@/lib/pdf-export'
+import { exportToExcel } from '@/lib/export-utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -370,6 +373,52 @@ export default function Biblioteca() {
     formData.palavras_chave,
   )
 
+  const handleExportPdf = async () => {
+    const rows = livros.map((l) => `
+      <tr>
+        <td>${l.titulo}</td>
+        <td>${l.autor}</td>
+        <td>${(l.palavras_chave || []).join(', ') || '-'}</td>
+      </tr>
+    `).join('')
+
+    const tableHtml = `
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Palavras-chave</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `
+
+    await exportToPdf({
+      filename: 'biblioteca.pdf',
+      title: 'Acervo da Biblioteca',
+      filters: search ? \`Busca: \${search}\` : 'Nenhum',
+      tableHtml,
+      userName: user?.name
+    })
+  }
+
+  const handleExportExcel = async () => {
+    const data = [
+      ['Título', 'Autor', 'Descrição', 'Palavras-chave'],
+      ...livros.map((l) => [
+        l.titulo,
+        l.autor,
+        l.descricao || '',
+        (l.palavras_chave || []).join(', ')
+      ])
+    ]
+    exportToExcel('biblioteca.xlsx', [{ name: 'Biblioteca', data }])
+  }
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -444,9 +493,16 @@ export default function Biblioteca() {
             )}
           </div>
         </div>
-        <Button onClick={() => openDialog()}>
-          <Plus className="h-4 w-4 mr-2" /> Adicionar Livro
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportDropdown
+            onExportPdf={handleExportPdf}
+            onExportExcel={handleExportExcel}
+            disabled={livros.length === 0}
+          />
+          <Button onClick={() => openDialog()}>
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Livro
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-lg border shadow-sm">

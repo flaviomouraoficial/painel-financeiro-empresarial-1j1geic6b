@@ -189,6 +189,21 @@ export function AppSidebar() {
                 </>
               )}
 
+              {(user?.perfil === 'admin' || user?.perfil === 'gerente') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === '/auditoria'}
+                    tooltip="Auditoria"
+                  >
+                    <Link to="/auditoria">
+                      <ShieldCheck />
+                      <span>Auditoria</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
