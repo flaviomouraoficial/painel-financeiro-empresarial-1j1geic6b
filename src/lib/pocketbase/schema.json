@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T15:20:11.902Z",
+  "generatedAt": "2026-04-27T15:25:15.614Z",
   "collections": [
     {
       "name": "users",
@@ -2264,6 +2264,14 @@
           "type": "file",
           "required": false,
           "system": false
+        },
+        {
+          "name": "embedding",
+          "type": "vector",
+          "required": false,
+          "system": false,
+          "vectorDimensions": 1536,
+          "vectorDistance": "cosine"
         }
       ],
       "indexes": [
