@@ -19,7 +19,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
-import { UserFormDialog } from '@/components/users/user-form-dialog'
+import { UserFormSheet } from '@/components/users/user-form-sheet'
 import { UserDeleteDialog } from '@/components/users/user-delete-dialog'
 
 export default function Usuarios() {
@@ -258,7 +258,7 @@ export default function Usuarios() {
         </Table>
       </div>
 
-      <UserFormDialog
+      <UserFormSheet
         open={formOpen}
         onOpenChange={setFormOpen}
         user={selectedUser}

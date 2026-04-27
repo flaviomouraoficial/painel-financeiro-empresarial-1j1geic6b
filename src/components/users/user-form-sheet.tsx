@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import {
   Form,
   FormField,
@@ -57,7 +63,7 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>
 
-export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId }: any) {
+export function UserFormSheet({ user, open, onOpenChange, onSuccess, companyId }: any) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -131,13 +137,18 @@ export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{user ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-[425px] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{user ? 'Editar Usuário' : 'Novo Usuário'}</SheetTitle>
+          <SheetDescription>
+            {user
+              ? 'Atualize as informações e permissões do usuário.'
+              : 'Adicione um novo membro à equipe.'}
+          </SheetDescription>
+        </SheetHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-6">
             <FormField
               control={form.control}
               name="name"
@@ -194,7 +205,7 @@ export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId 
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="perfil"
@@ -221,8 +232,13 @@ export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId 
                 control={form.control}
                 name="ativo"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-8">
-                    <FormLabel>Ativo</FormLabel>
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Usuário Ativo</FormLabel>
+                      <p className="text-[12px] text-muted-foreground">
+                        Permitir acesso ao sistema
+                      </p>
+                    </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
@@ -230,19 +246,19 @@ export function UserFormDialog({ user, open, onOpenChange, onSuccess, companyId 
                 )}
               />
             </div>
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-6">
               <Button
                 type="submit"
                 disabled={isLoading || !form.formState.isValid}
-                className="bg-[#268C83] hover:bg-[#1f736b]"
+                className="w-full bg-[#268C83] hover:bg-[#1f736b]"
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar
+                Salvar Usuário
               </Button>
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

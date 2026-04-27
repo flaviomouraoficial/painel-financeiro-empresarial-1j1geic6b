@@ -36,7 +36,20 @@ import {
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import { Search, Plus, Book, Trash2, Edit, Loader2, WifiOff, FileText, Info } from 'lucide-react'
+import {
+  Search,
+  Plus,
+  Book,
+  Trash2,
+  Edit,
+  Loader2,
+  WifiOff,
+  FileText,
+  Info,
+  RefreshCw,
+  CheckCircle2,
+} from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 const CACHE_KEY = 'biblioteca_livros_cache'
@@ -133,6 +146,8 @@ export default function Biblioteca() {
     user?.empresa_id ? getQueue(user.empresa_id).length : 0,
   )
 
+  const [useSemanticSearch, setUseSemanticSearch] = useState(false)
+
   const [formData, setFormData] = useState({
     titulo: '',
     autor: '',
@@ -156,12 +171,16 @@ export default function Biblioteca() {
   }, [])
 
   const loadData = useCallback(
-    async (currentSearch: string) => {
+    async (currentSearch: string, isSemantic: boolean) => {
       if (!user?.empresa_id) return
       try {
         let data: Livro[] = []
         if (currentSearch && isOnline) {
-          data = await searchLivros(currentSearch)
+          if (isSemantic) {
+            data = await searchLivros(currentSearch)
+          } else {
+            data = await getLivros(currentSearch)
+          }
         } else {
           data = await getLivros(currentSearch)
         }
@@ -210,8 +229,8 @@ export default function Biblioteca() {
     setQueue(user.empresa_id, remaining)
     setSyncQueueLength(remaining.length)
     setIsSyncing(false)
-    loadData(search)
-  }, [user?.empresa_id, isSyncing, search, loadData])
+    loadData(search, useSemanticSearch)
+  }, [user?.empresa_id, isSyncing, search, useSemanticSearch, loadData])
 
   useEffect(() => {
     if (isOnline && syncQueueLength > 0 && !isSyncing) processQueue()
@@ -219,15 +238,16 @@ export default function Biblioteca() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadData(search)
+      loadData(search, useSemanticSearch)
     }, 400)
     return () => clearTimeout(timer)
-  }, [search, loadData])
+  }, [search, useSemanticSearch, loadData])
 
   useRealtime(
     'livros',
     (e) => {
-      if (e.record?.empresa_id === user?.empresa_id && !isSyncing) loadData(search)
+      if (e.record?.empresa_id === user?.empresa_id && !isSyncing)
+        loadData(search, useSemanticSearch)
     },
     !!user?.id,
   )
@@ -306,7 +326,7 @@ export default function Biblioteca() {
         setQueue(user.empresa_id, queue)
         setSyncQueueLength(queue.length)
         toast({ title: 'Offline', description: 'Operação salva na fila local.' })
-        loadData(search)
+        loadData(search, useSemanticSearch)
       }
       setIsDialogOpen(false)
     } catch (error) {
@@ -335,7 +355,7 @@ export default function Biblioteca() {
           setSyncQueueLength(queue.length)
         }
         toast({ title: 'Offline', description: 'Exclusão salva na fila local.' })
-        loadData(search)
+        loadData(search, useSemanticSearch)
       }
     } catch {
       toast({ title: 'Erro', description: 'Falha ao excluir.', variant: 'destructive' })
@@ -361,23 +381,39 @@ export default function Biblioteca() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div
-                    className={cn(
-                      'h-3 w-3 rounded-full mt-1.5 cursor-help',
-                      isOnline
-                        ? syncQueueLength > 0
-                          ? 'bg-amber-500 animate-pulse'
-                          : 'bg-green-500'
-                        : 'bg-gray-400',
+                  <div className="mt-1.5 cursor-help">
+                    {isOnline ? (
+                      syncQueueLength > 0 ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-500/10 text-amber-600 border-amber-500/30"
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> Pendente
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-500/10 text-green-600 border-green-500/30"
+                        >
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Sincronizado
+                        </Badge>
+                      )
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-gray-500/10 text-gray-600 border-gray-500/30"
+                      >
+                        <WifiOff className="h-3 w-3 mr-1" /> Offline
+                      </Badge>
                     )}
-                  />
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   {isOnline
                     ? syncQueueLength > 0
-                      ? 'Sincronizando...'
-                      : 'Sincronizado'
-                    : 'Aguardando conexão (Offline)'}
+                      ? 'Sincronizando as alterações locais...'
+                      : 'Todos os dados estão sincronizados com a nuvem'
+                    : 'Aguardando conexão (Modo Offline)'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -413,14 +449,30 @@ export default function Biblioteca() {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Pesquise por contexto, título, autor ou palavra-chave..."
-          className="pl-9 bg-background shadow-sm"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row gap-4 items-center bg-card p-4 rounded-lg border shadow-sm">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={
+              useSemanticSearch
+                ? 'Descreva o que você procura (ex: livros sobre gestão financeira)...'
+                : 'Pesquise por título, autor ou palavra-chave...'
+            }
+            className="pl-9 bg-background"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 shrink-0 border-l pl-4 md:ml-2 w-full md:w-auto justify-end">
+          <Switch
+            checked={useSemanticSearch}
+            onCheckedChange={setUseSemanticSearch}
+            id="semantic-search"
+          />
+          <Label htmlFor="semantic-search" className="text-sm font-medium cursor-pointer">
+            Busca Semântica
+          </Label>
+        </div>
       </div>
 
       {loading ? (
