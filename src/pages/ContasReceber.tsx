@@ -95,6 +95,13 @@ export default function ContasReceber() {
     try {
       const payload = { ...data, empresa_id: user.empresa_id }
 
+      delete payload.id
+      delete payload.created
+      delete payload.updated
+      delete payload.collectionId
+      delete payload.collectionName
+      delete payload.expand
+
       if (
         payload.data_vencimento &&
         !payload.data_vencimento.includes('T') &&
@@ -105,12 +112,12 @@ export default function ContasReceber() {
 
       if (editingItem) {
         await updateContaReceber(editingItem.id, payload)
-        toast({ title: 'Conta atualizada com sucesso' })
+        toast({ title: 'Conta atualizada com sucesso', className: 'bg-green-500 text-white' })
       } else {
         payload.status = 'pendente'
         payload.data_emissao = new Date().toISOString()
         await createContaReceber(payload)
-        toast({ title: 'Conta a receber criada com sucesso' })
+        toast({ title: 'Conta a receber criada com sucesso', className: 'bg-green-500 text-white' })
       }
       setFormOpen(false)
     } catch (err) {

@@ -76,7 +76,10 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
   useEffect(() => {
     if (open) {
       if (conta) {
-        form.reset({ ...conta, data_vencimento: conta.data_vencimento?.split(' ')[0] })
+        form.reset({
+          ...conta,
+          data_vencimento: conta.data_vencimento?.split(' ')[0].split('T')[0],
+        })
       } else {
         form.reset({
           id: '',
@@ -100,10 +103,10 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
     try {
       const payload = { ...values }
 
-      if (payload.fornecedor_id === 'none' || !payload.fornecedor_id) payload.fornecedor_id = null
-      if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = null
+      if (payload.fornecedor_id === 'none' || !payload.fornecedor_id) payload.fornecedor_id = ''
+      if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = ''
       if (payload.centro_custo_id === 'none' || !payload.centro_custo_id)
-        payload.centro_custo_id = null
+        payload.centro_custo_id = ''
 
       if (
         payload.data_vencimento &&
@@ -113,18 +116,23 @@ export function ContaForm({ open, onOpenChange, conta, cadastros, onSuccess }: a
         payload.data_vencimento = payload.data_vencimento + ' 12:00:00.000Z'
       }
 
-      if (payload.id) {
-        await updateContaPagar(payload.id, payload)
+      const contaId = payload.id
+      delete payload.id
+      delete payload.created
+      delete payload.updated
+      delete payload.collectionId
+      delete payload.collectionName
+      delete payload.expand
+
+      if (contaId) {
+        await updateContaPagar(contaId, payload)
         toast({ title: 'Conta atualizada com sucesso', className: 'bg-green-500 text-white' })
       } else {
-        delete payload.id
         payload.data_emissao = new Date().toISOString()
-        await createContaPagar({
-          ...payload,
-          status: 'pendente',
-          empresa_id: user.empresa_id,
-          usuario_id: user.id,
-        })
+        payload.status = 'pendente'
+        payload.empresa_id = user.empresa_id
+        payload.usuario_id = user.id
+        await createContaPagar(payload)
         toast({ title: 'Conta a pagar criada com sucesso', className: 'bg-green-500 text-white' })
       }
       onSuccess()

@@ -82,8 +82,8 @@ export function ContaReceberForm({
 
   const handleSubmit = (data: any) => {
     const payload = { ...data }
-    if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = null
-    if (payload.cliente_id === 'none' || !payload.cliente_id) payload.cliente_id = null
+    if (payload.projeto_id === 'none' || !payload.projeto_id) payload.projeto_id = ''
+    if (payload.cliente_id === 'none' || !payload.cliente_id) payload.cliente_id = ''
     onSubmit(payload)
   }
 
@@ -155,7 +155,7 @@ export function ContaReceberForm({
                   <Input
                     type="date"
                     {...field}
-                    value={field.value ? field.value.split('T')[0] : ''}
+                    value={field.value ? field.value.split(' ')[0].split('T')[0] : ''}
                   />
                 </FormControl>
                 <FormMessage />
