@@ -150,7 +150,9 @@ export default function RecibosDespesas() {
                     <td className="p-4 font-medium text-primary">{r.numero_recibo}</td>
                     <td className="p-4 truncate max-w-[200px]">{r.expand?.cliente_id?.nome}</td>
                     <td className="p-4">{formatDate(r.data_criacao)}</td>
-                    <td className="p-4 text-right font-medium">{formatCurrency(r.valor_nf)}</td>
+                    <td className="p-4 text-right font-bold text-[#268C83]">
+                      {formatCurrency(r.valor_nf)}
+                    </td>
                     <td className="p-4 text-center">
                       <Badge
                         variant={

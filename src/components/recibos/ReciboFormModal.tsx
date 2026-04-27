@@ -119,7 +119,6 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   }, [open, recibo])
 
   const subtotal = itens.reduce((a, b) => a + b.quantidade * b.valor_unitario, 0)
-  const diff = form.valor_nf - subtotal
   const c = clientes.find((x) => x.id === form.cliente_id)
   const selectedConta = contas.find((x) => x.id === form.conta_bancaria_id)
 
@@ -134,9 +133,9 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
       return toast({ title: 'Informe a data da NF', variant: 'destructive', duration: 5000 })
     if (!form.numero_nf)
       return toast({ title: 'Informe o número da NF', variant: 'destructive', duration: 5000 })
-    if (form.valor_nf <= 0)
+    if (subtotal <= 0)
       return toast({
-        title: 'Informe um valor válido para a NF',
+        title: 'Informe um valor válido para o recibo',
         variant: 'destructive',
         duration: 5000,
       })
@@ -159,6 +158,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
     try {
       const payload = {
         ...form,
+        valor_nf: subtotal,
         data_criacao: form.data_criacao
           ? new Date(`${form.data_criacao}T12:00:00Z`).toISOString()
           : '',
@@ -358,21 +358,12 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                         onChange={(e) => setForm({ ...form, data_nf: e.target.value })}
                       />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <Label>Descrição (Opcional)</Label>
                       <Input
                         value={form.descricao_nf || ''}
                         onChange={(e) => setForm({ ...form, descricao_nf: e.target.value })}
                         placeholder="Descrição do serviço/produto"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Valor Total da NF (R$) *</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={form.valor_nf}
-                        onChange={(e) => setForm({ ...form, valor_nf: Number(e.target.value) })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -470,13 +461,13 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                         </span>
                         <span className="font-medium truncate block">{c?.nome || '-'}</span>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-xs">Total NF</span>
-                        <span className="font-medium">{formatCurrency(form.valor_nf)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-xs">Subtotal Itens</span>
-                        <span className="font-medium">{formatCurrency(subtotal)}</span>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block text-xs">
+                          Valor Total do Recibo
+                        </span>
+                        <span className="font-bold text-[#268C83] text-lg">
+                          {formatCurrency(subtotal)}
+                        </span>
                       </div>
                       <div className="col-span-2">
                         <span className="text-muted-foreground block text-xs">Conta Destino</span>
@@ -487,12 +478,6 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                         </span>
                       </div>
                     </div>
-                    {diff !== 0 && (
-                      <div className="bg-orange-50 text-orange-600 p-2 rounded text-xs font-medium border border-orange-200">
-                        Atenção: o valor total de itens ({formatCurrency(subtotal)}) é diferente do
-                        valor da nota fiscal ({formatCurrency(form.valor_nf)})
-                      </div>
-                    )}
                   </div>
                 </section>
               </div>

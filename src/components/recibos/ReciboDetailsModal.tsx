@@ -100,8 +100,13 @@ export default function ReciboDetailsModal({ open, onOpenChange, recibo }: any) 
                   </tbody>
                 </table>
               </div>
-              <div className="mt-3 flex justify-end">
-                <p className="text-lg font-bold">Total da NF: {formatCurrency(recibo.valor_nf)}</p>
+              <div className="mt-4 flex justify-end bg-muted/30 p-4 rounded-lg border">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground mb-1">Valor Total do Recibo</p>
+                  <p className="text-2xl font-bold text-[#268C83]">
+                    {formatCurrency(recibo.valor_nf)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
