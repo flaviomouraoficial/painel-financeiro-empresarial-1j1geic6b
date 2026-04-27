@@ -16,6 +16,8 @@ import { Link } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
+import { extractFieldErrors, getErrorMessage } from '@/lib/pocketbase/errors'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function Configuracoes() {
   const { user } = useAuth()
@@ -24,6 +26,9 @@ export default function Configuracoes() {
   const [empresa, setEmpresa] = useState<any>({})
   const [perfil, setPerfil] = useState<any>({})
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [perfilErrors, setPerfilErrors] = useState<Record<string, string>>({})
+  const [isSavingPerfil, setIsSavingPerfil] = useState(false)
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
@@ -34,12 +39,25 @@ export default function Configuracoes() {
 
   useEffect(() => {
     if (user) {
-      setPerfil({ name: user.name })
+      setPerfil({ name: user.name, email: user.email })
+      if (user.avatar) {
+        setAvatarPreview(pb.files.getURL(user, user.avatar))
+      }
       if (user.empresa_id) {
         pb.collection('empresas').getOne(user.empresa_id).then(setEmpresa).catch(console.error)
       }
     }
   }, [user])
+
+  useEffect(() => {
+    if (avatarFile) {
+      const objectUrl = URL.createObjectURL(avatarFile)
+      setAvatarPreview(objectUrl)
+      return () => URL.revokeObjectURL(objectUrl)
+    } else if (user?.avatar) {
+      setAvatarPreview(pb.files.getURL(user, user.avatar))
+    }
+  }, [avatarFile, user])
 
   const handleSaveEmpresa = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,19 +79,41 @@ export default function Configuracoes() {
   const handleSavePerfil = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+
+    setPerfilErrors({})
+    setIsSavingPerfil(true)
     try {
       const formData = new FormData()
-      formData.append('name', perfil.name)
+      formData.append('name', perfil.name || '')
+      formData.append('email', perfil.email || '')
       if (avatarFile) formData.append('avatar', avatarFile)
 
-      await pb.collection('users').update(user.id, formData)
-      toast({ title: 'Sucesso', description: 'Perfil atualizado.' })
-    } catch (err) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar o perfil.',
-        variant: 'destructive',
-      })
+      const updatedUser = await pb.collection('users').update(user.id, formData)
+
+      if (updatedUser.avatar) {
+        setAvatarPreview(`${pb.files.getURL(updatedUser, updatedUser.avatar)}?t=${Date.now()}`)
+      }
+      setAvatarFile(null)
+
+      toast({ title: 'Sucesso', description: 'Perfil atualizado com sucesso.' })
+    } catch (err: any) {
+      const errors = extractFieldErrors(err)
+      if (Object.keys(errors).length > 0) {
+        setPerfilErrors(errors)
+        toast({
+          title: 'Erro de validação',
+          description: 'Verifique os campos destacados.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Erro',
+          description: getErrorMessage(err) || 'Não foi possível salvar o perfil.',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      setIsSavingPerfil(false)
     }
   }
 
@@ -239,6 +279,35 @@ export default function Configuracoes() {
                 <CardDescription>Atualize seu nome e foto de perfil.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-6">
+                  <Avatar className="h-20 w-20 border-2 border-muted shrink-0">
+                    <AvatarImage
+                      src={avatarPreview || undefined}
+                      alt={perfil.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-2xl">
+                      {perfil.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2 flex-1 w-full">
+                    <Label>Foto de Perfil (Avatar)</Label>
+                    <Input
+                      key={avatarFile ? 'file-selected' : 'file-empty'}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                      className={perfilErrors.avatar ? 'border-red-500' : ''}
+                    />
+                    {perfilErrors.avatar && (
+                      <p className="text-sm text-red-500">{perfilErrors.avatar}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Recomendado: 256x256px. Máx: 5MB.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>
@@ -248,21 +317,37 @@ export default function Configuracoes() {
                       required
                       value={perfil.name || ''}
                       onChange={(e) => setPerfil({ ...perfil, name: e.target.value })}
+                      className={perfilErrors.name ? 'border-red-500' : ''}
                     />
+                    {perfilErrors.name && (
+                      <p className="text-sm text-red-500">{perfilErrors.name}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Foto de Perfil (Avatar)</Label>
+                    <Label>
+                      E-mail <span className="text-red-500">*</span>
+                    </Label>
                     <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                      type="email"
+                      required
+                      value={perfil.email || ''}
+                      onChange={(e) => setPerfil({ ...perfil, email: e.target.value })}
+                      className={perfilErrors.email ? 'border-red-500' : ''}
                     />
+                    {perfilErrors.email && (
+                      <p className="text-sm text-red-500">{perfilErrors.email}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-50 dark:bg-slate-900 px-6 py-4 justify-end">
-                <Button type="submit">
-                  <Save className="mr-2 h-4 w-4" /> Atualizar Perfil
+                <Button type="submit" disabled={isSavingPerfil}>
+                  {isSavingPerfil ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Atualizar Perfil
                 </Button>
               </CardFooter>
             </form>
