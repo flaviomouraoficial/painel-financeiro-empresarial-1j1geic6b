@@ -18,12 +18,7 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/hooks/use-auth'
-import {
-  createRecibo,
-  updateRecibo,
-  generateNumeroRecibo,
-  getReciboItens,
-} from '@/services/recibos'
+import { createRecibo, updateRecibo, getReciboItens } from '@/services/recibos'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { ItemsEditor } from './ItemsEditor'
@@ -91,10 +86,9 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
         })
         setItens(await getReciboItens(recibo.id))
       } else {
-        const num = await generateNumeroRecibo(user.empresa_id)
         setForm((f: any) => ({
           ...f,
-          numero_recibo: num,
+          numero_recibo: '',
           status: 'pendente',
           valor_nf: 0,
           cliente_id: '',
@@ -123,8 +117,6 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
   const selectedConta = contas.find((x) => x.id === form.conta_bancaria_id)
 
   const handleSave = async () => {
-    if (!form.numero_recibo)
-      return toast({ title: 'Informe o número do recibo', variant: 'destructive', duration: 5000 })
     if (!form.cliente_id)
       return toast({ title: 'Selecione um cliente', variant: 'destructive', duration: 5000 })
     if (!form.data_criacao)
@@ -170,6 +162,7 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
         await updateRecibo(recibo.id, payload, itens)
         toast({ title: 'Recibo atualizado com sucesso', duration: 3000 })
       } else {
+        payload.numero_recibo = 'GERANDO' // Overridden by backend hook
         await createRecibo(payload, itens)
         toast({ title: 'Recibo criado com sucesso', duration: 3000 })
       }
@@ -243,9 +236,11 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                         <div className="space-y-2">
                           <Label>Número do Recibo *</Label>
                           <Input
-                            value={form.numero_recibo}
-                            onChange={(e) => setForm({ ...form, numero_recibo: e.target.value })}
-                            placeholder="Ex: REC-2023-00001"
+                            value={form.numero_recibo || ''}
+                            readOnly
+                            disabled
+                            placeholder="Gerado automaticamente"
+                            className="bg-muted"
                           />
                         </div>
                         <div className="space-y-2">
@@ -449,7 +444,9 @@ export default function ReciboFormModal({ open, onOpenChange, recibo, onSuccess 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground block text-xs">Número Gerado</span>
-                        <span className="font-semibold">{form.numero_recibo}</span>
+                        <span className="font-semibold">
+                          {form.numero_recibo || 'Gerado ao salvar'}
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground block text-xs">Data Atual</span>
