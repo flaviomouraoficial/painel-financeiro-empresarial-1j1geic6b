@@ -104,7 +104,9 @@ export default function Lancamentos() {
   }
 
   const handleExportPdf = async () => {
-    const rows = lancamentos.map((t) => `
+    const rows = lancamentos
+      .map(
+        (t) => `
       <tr>
         <td>${formatDate(t.data_lancamento)}</td>
         <td>${t.descricao}</td>
@@ -112,7 +114,9 @@ export default function Lancamentos() {
         <td>${t.tipo === 'receita' ? 'Receita' : 'Despesa'}</td>
         <td class="text-right">${formatCurrency(t.valor)}</td>
       </tr>
-    `).join('')
+    `,
+      )
+      .join('')
 
     const tableHtml = `
       <table>
@@ -135,9 +139,9 @@ export default function Lancamentos() {
       filename: 'lancamentos.pdf',
       title: 'Relatório de Lançamentos Financeiros',
       period: filtroMes || 'Todos',
-      filters: \`Tipo: \${filtroTipo === 'todos' ? 'Todos' : filtroTipo}\`,
+      filters: `Tipo: ${filtroTipo === 'todos' ? 'Todos' : filtroTipo}`,
       tableHtml,
-      userName: user?.name
+      userName: user?.name,
     })
   }
 
@@ -150,8 +154,8 @@ export default function Lancamentos() {
         t.expand?.categoria_id?.nome || '-',
         t.status || 'pendente',
         t.tipo,
-        t.valor
-      ])
+        t.valor,
+      ]),
     ]
     exportToExcel('lancamentos.xlsx', [{ name: 'Lançamentos', data }])
   }

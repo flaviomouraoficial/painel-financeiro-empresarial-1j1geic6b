@@ -11,14 +11,7 @@ migrate(
       updateRule: null,
       deleteRule: null,
       fields: [
-        {
-          name: 'empresa_id',
-          type: 'relation',
-          required: true,
-          collectionId: 'empresas',
-          cascadeDelete: true,
-          maxSelect: 1,
-        },
+        { name: 'empresa_id', type: 'text', required: true },
         {
           name: 'usuario_id',
           type: 'relation',

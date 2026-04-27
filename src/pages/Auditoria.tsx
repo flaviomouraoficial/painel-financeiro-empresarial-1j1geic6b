@@ -39,10 +39,6 @@ export default function Auditoria() {
   const [filterAcao, setFilterAcao] = useState<string>('todas')
   const [selectedLog, setSelectedLog] = useState<any>(null)
 
-  if (user && user.perfil !== 'admin' && user.perfil !== 'gerente') {
-    return <Navigate to="/" replace />
-  }
-
   const loadLogs = useCallback(async () => {
     if (!user?.empresa_id) return
     setLoading(true)
@@ -71,6 +67,10 @@ export default function Auditoria() {
   useRealtime('auditoria_logs', () => {
     loadLogs()
   })
+
+  if (user && user.perfil !== 'admin' && user.perfil !== 'gerente') {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in-up">

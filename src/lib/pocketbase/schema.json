@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-27T15:37:01.266Z",
+  "generatedAt": "2026-04-27T15:41:16.581Z",
   "collections": [
     {
       "name": "users",
@@ -2277,6 +2277,76 @@
       "indexes": [
         "CREATE INDEX idx_livros_empresa ON livros (empresa_id)",
         "CREATE INDEX idx_livros_usuario ON livros (usuario_id)"
+      ]
+    },
+    {
+      "name": "auditoria_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil = 'admin' || @request.auth.perfil = 'gerente')",
+        "view": "@request.auth.id != '' && empresa_id = @request.auth.empresa_id && (@request.auth.perfil = 'admin' || @request.auth.perfil = 'gerente')",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "empresa_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "usuario_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "acao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["create", "update", "delete"]
+        },
+        {
+          "name": "tabela",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "registro_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "detalhes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_auditoria_empresa ON auditoria_logs (empresa_id)",
+        "CREATE INDEX idx_auditoria_tabela ON auditoria_logs (tabela)",
+        "CREATE INDEX idx_auditoria_created ON auditoria_logs (created)"
       ]
     }
   ]

@@ -374,13 +374,17 @@ export default function Biblioteca() {
   )
 
   const handleExportPdf = async () => {
-    const rows = livros.map((l) => `
+    const rows = livros
+      .map(
+        (l) => `
       <tr>
         <td>${l.titulo}</td>
         <td>${l.autor}</td>
         <td>${(l.palavras_chave || []).join(', ') || '-'}</td>
       </tr>
-    `).join('')
+    `,
+      )
+      .join('')
 
     const tableHtml = `
       <table>
@@ -400,9 +404,9 @@ export default function Biblioteca() {
     await exportToPdf({
       filename: 'biblioteca.pdf',
       title: 'Acervo da Biblioteca',
-      filters: search ? \`Busca: \${search}\` : 'Nenhum',
+      filters: search ? `Busca: ${search}` : 'Nenhum',
       tableHtml,
-      userName: user?.name
+      userName: user?.name,
     })
   }
 
@@ -413,8 +417,8 @@ export default function Biblioteca() {
         l.titulo,
         l.autor,
         l.descricao || '',
-        (l.palavras_chave || []).join(', ')
-      ])
+        (l.palavras_chave || []).join(', '),
+      ]),
     ]
     exportToExcel('biblioteca.xlsx', [{ name: 'Biblioteca', data }])
   }
