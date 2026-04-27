@@ -27,13 +27,38 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, Plus, Book, Trash2, Edit, Loader2 } from 'lucide-react'
+import { Search, Plus, Book, Trash2, Edit, Loader2, WifiOff } from 'lucide-react'
+
+const CACHE_KEY = 'biblioteca_livros_cache'
+
+const getCache = (empresaId?: string): Livro[] | null => {
+  if (!empresaId) return null
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed.empresa_id === empresaId) {
+        return parsed.data
+      } else {
+        localStorage.removeItem(CACHE_KEY)
+      }
+    }
+  } catch {
+    /* intentionally ignored */
+  }
+  return null
+}
+
+const setCache = (empresaId: string, data: Livro[]) => {
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ empresa_id: empresaId, data }))
+}
 
 export default function Biblioteca() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const [livros, setLivros] = useState<Livro[]>([])
-  const [loading, setLoading] = useState(true)
+  const [livros, setLivros] = useState<Livro[]>(() => getCache(user?.empresa_id) || [])
+  const [loading, setLoading] = useState(() => !getCache(user?.empresa_id))
+  const [isOffline, setIsOffline] = useState(false)
   const [search, setSearch] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isAlertOpen, setIsAlertOpen] = useState(false)
@@ -47,32 +72,105 @@ export default function Biblioteca() {
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const loadData = async () => {
-    try {
-      setLivros(await getLivros(search))
-    } catch (error) {
-      const err = error as any
-      if (err?.isAbort || err?.status === 0) return
-      toast({
-        title: 'Erro',
-        description: 'Falha ao carregar a biblioteca.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!user) {
+      localStorage.removeItem(CACHE_KEY)
     }
-  }
+  }, [user])
 
   useEffect(() => {
-    const timer = setTimeout(loadData, 300)
-    return () => clearTimeout(timer)
-  }, [search])
+    let isActive = true
+
+    if (user?.empresa_id) {
+      const cachedList = getCache(user.empresa_id)
+      if (cachedList) {
+        if (search) {
+          const q = search.toLowerCase()
+          const filtered = cachedList.filter(
+            (l) =>
+              l.titulo?.toLowerCase().includes(q) ||
+              l.autor?.toLowerCase().includes(q) ||
+              l.descricao?.toLowerCase().includes(q) ||
+              l.palavras_chave?.some((p) => p.toLowerCase().includes(q)),
+          )
+          setLivros(filtered)
+        } else {
+          setLivros(cachedList)
+        }
+      } else if (livros.length === 0) {
+        setLoading(true)
+      }
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await getLivros(search)
+        if (!isActive) return
+        setLivros(data)
+        setIsOffline(false)
+
+        if (!search && user?.empresa_id) {
+          setCache(user.empresa_id, data)
+        }
+      } catch (error) {
+        if (!isActive) return
+        const err = error as any
+        if (err?.isAbort || err?.status === 0) {
+          setIsOffline(true)
+          return
+        }
+        toast({
+          title: 'Erro',
+          description: 'Falha ao carregar a biblioteca.',
+          variant: 'destructive',
+        })
+      } finally {
+        if (isActive) setLoading(false)
+      }
+    }, 300)
+
+    return () => {
+      isActive = false
+      clearTimeout(timer)
+    }
+  }, [search, user?.empresa_id])
 
   useRealtime(
     'livros',
     (e) => {
       if (e.record?.empresa_id === user?.empresa_id) {
-        loadData()
+        if (!user?.empresa_id) return
+
+        const currentCache = getCache(user.empresa_id) || []
+        let newCache = [...currentCache]
+
+        if (e.action === 'create') {
+          const newLivro = e.record as unknown as Livro
+          if (!newCache.some((l) => l.id === newLivro.id)) {
+            newCache.unshift(newLivro)
+          }
+        } else if (e.action === 'update') {
+          const updatedLivro = e.record as unknown as Livro
+          newCache = newCache.map((l) => (l.id === updatedLivro.id ? { ...l, ...updatedLivro } : l))
+        } else if (e.action === 'delete') {
+          newCache = newCache.filter((l) => l.id !== e.record.id)
+        }
+
+        setCache(user.empresa_id, newCache)
+
+        if (!search) {
+          setLivros(newCache)
+        } else {
+          const q = search.toLowerCase()
+          const filtered = newCache.filter(
+            (l) =>
+              l.titulo?.toLowerCase().includes(q) ||
+              l.autor?.toLowerCase().includes(q) ||
+              l.descricao?.toLowerCase().includes(q) ||
+              l.palavras_chave?.some((p) => p.toLowerCase().includes(q)),
+          )
+          setLivros(filtered)
+        }
       }
     },
     !!user?.id,
@@ -140,7 +238,18 @@ export default function Biblioteca() {
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Book className="h-8 w-8 text-primary" /> Biblioteca
           </h1>
-          <p className="text-muted-foreground mt-1">Gerencie livros e materiais de referência.</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-muted-foreground">Gerencie livros e materiais de referência.</p>
+            {isOffline && (
+              <Badge
+                variant="outline"
+                className="text-amber-600 border-amber-500/30 bg-amber-500/10 font-medium"
+              >
+                <WifiOff className="h-3 w-3 mr-1" />
+                Modo Offline
+              </Badge>
+            )}
+          </div>
         </div>
         <Button onClick={() => openDialog()}>
           <Plus className="h-4 w-4 mr-2" /> Adicionar Livro
