@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
+import { extractFieldErrors } from '@/lib/pocketbase/errors'
 import { criarLancamento, editarLancamento } from '@/services/lancamentos'
 
 interface LancamentosFormProps {
@@ -30,6 +32,7 @@ export function LancamentosForm({
   onCancel,
 }: LancamentosFormProps) {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
@@ -38,9 +41,11 @@ export function LancamentosForm({
     descricao: '',
     valor: '',
     data_lancamento: new Date().toISOString().split('T')[0],
+    data_competencia: new Date().toISOString().split('T')[0],
     forma_pagamento: '',
     conta_bancaria_id: 'none',
     cartao_credito_id: 'none',
+    status: 'confirmado',
   })
 
   useEffect(() => {
@@ -53,9 +58,13 @@ export function LancamentosForm({
         data_lancamento: lancamento.data_lancamento
           ? lancamento.data_lancamento.split(' ')[0]
           : new Date().toISOString().split('T')[0],
+        data_competencia: lancamento.data_competencia
+          ? lancamento.data_competencia.split(' ')[0]
+          : new Date().toISOString().split('T')[0],
         forma_pagamento: lancamento.forma_pagamento || '',
         conta_bancaria_id: lancamento.conta_bancaria_id || 'none',
         cartao_credito_id: lancamento.cartao_credito_id || 'none',
+        status: lancamento.status || 'confirmado',
       })
     } else {
       setFormData({
@@ -64,9 +73,11 @@ export function LancamentosForm({
         descricao: '',
         valor: '',
         data_lancamento: new Date().toISOString().split('T')[0],
+        data_competencia: new Date().toISOString().split('T')[0],
         forma_pagamento: '',
         conta_bancaria_id: 'none',
         cartao_credito_id: 'none',
+        status: 'confirmado',
       })
     }
   }, [lancamento])
@@ -122,15 +133,18 @@ export function LancamentosForm({
     try {
       const payload = {
         ...formData,
+        empresa_id: user?.empresa_id,
+        usuario_id: user?.id,
         valor: valorNum,
         data_lancamento: `${formData.data_lancamento} 12:00:00.000Z`,
+        data_competencia: formData.data_competencia
+          ? `${formData.data_competencia} 12:00:00.000Z`
+          : '',
         conta_bancaria_id:
           showConta && formData.conta_bancaria_id !== 'none' ? formData.conta_bancaria_id : '',
         cartao_credito_id:
           showCartao && formData.cartao_credito_id !== 'none' ? formData.cartao_credito_id : '',
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       if (lancamento?.id) {
         await editarLancamento(lancamento.id, payload)
@@ -151,7 +165,11 @@ export function LancamentosForm({
       }
       onSuccess()
     } catch (error: any) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive', duration: 5000 })
+      const fieldErrors = extractFieldErrors(error)
+      const errorMsgs = Object.values(fieldErrors)
+      const description =
+        errorMsgs.length > 0 ? errorMsgs.join(' ') : error.message || 'Erro ao salvar lançamento'
+      toast({ title: 'Erro de Validação', description, variant: 'destructive', duration: 5000 })
     } finally {
       setLoading(false)
     }
@@ -211,23 +229,23 @@ export function LancamentosForm({
         </div>
       </div>
 
-      <div>
-        <Label>Descrição *</Label>
-        <Input
-          disabled={loading}
-          value={formData.descricao}
-          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-          placeholder="Ex: Venda de consultoria"
-          className={`h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83] ${
-            submitted && !formData.descricao ? 'border-red-500 focus-visible:ring-red-500' : ''
-          }`}
-        />
-        {submitted && !formData.descricao && (
-          <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
-        )}
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+        <div className="md:col-span-2">
+          <Label>Descrição *</Label>
+          <Input
+            disabled={loading}
+            value={formData.descricao}
+            onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+            placeholder="Ex: Venda de consultoria"
+            className={`h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83] ${
+              submitted && !formData.descricao ? 'border-red-500 focus-visible:ring-red-500' : ''
+            }`}
+          />
+          {submitted && !formData.descricao && (
+            <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
+          )}
+        </div>
+
         <div>
           <Label>Valor *</Label>
           <Input
@@ -250,6 +268,20 @@ export function LancamentosForm({
             )
           )}
         </div>
+
+        <div>
+          <Label>Data de Competência</Label>
+          <Input
+            type="date"
+            disabled={loading}
+            value={formData.data_competencia}
+            onChange={(e) => setFormData({ ...formData, data_competencia: e.target.value })}
+            className="h-[40px] text-[14px] rounded-[8px] border-slate-200 focus-visible:ring-[#268C83]"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
         <div>
           <Label>Data do lançamento *</Label>
           <Input
@@ -266,6 +298,24 @@ export function LancamentosForm({
           {submitted && !formData.data_lancamento && (
             <p className="text-red-500 text-[12px] mt-1">Este campo é obrigatório</p>
           )}
+        </div>
+
+        <div>
+          <Label>Status *</Label>
+          <Select
+            disabled={loading}
+            value={formData.status}
+            onValueChange={(v) => setFormData({ ...formData, status: v })}
+          >
+            <SelectTrigger className="h-[40px] text-[14px] rounded-[8px] border-slate-200 focus:ring-[#268C83]">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="confirmado">Confirmado</SelectItem>
+              <SelectItem value="cancelado">Cancelado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
