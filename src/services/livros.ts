@@ -33,6 +33,20 @@ export const getLivros = (search?: string) => {
   })
 }
 
+export const searchLivros = async (query: string) => {
+  try {
+    const res = await pb.send('/backend/v1/search/livros', {
+      method: 'POST',
+      body: JSON.stringify({ query, k: 20 }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return (res.items || []) as Livro[]
+  } catch (err: any) {
+    console.error('Vector search failed, falling back to text search', err)
+    return getLivros(query)
+  }
+}
+
 export const createLivro = (data: Partial<Livro> | FormData) =>
   pb.collection('livros').create<Livro>(data)
 export const updateLivro = (id: string, data: Partial<Livro> | FormData) =>

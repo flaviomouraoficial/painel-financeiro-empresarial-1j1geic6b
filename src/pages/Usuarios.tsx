@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Edit, Trash, Users, ShieldAlert, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Trash, Users, ShieldAlert, RefreshCw, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import {
   Table,
   TableBody,
@@ -90,9 +91,39 @@ export default function Usuarios() {
     <div className="p-6 space-y-4 max-w-6xl mx-auto animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-foreground">
-            Gestão de Usuários
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[24px] font-bold tracking-tight text-foreground">
+              Gestão de Usuários
+            </h1>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs p-4 space-y-2">
+                  <p>
+                    <strong>Níveis de Acesso:</strong>
+                  </p>
+                  <ul className="text-sm space-y-1 list-disc pl-4">
+                    <li>
+                      <strong>Admin:</strong> Acesso total ao sistema, gerencia usuários e
+                      configurações.
+                    </li>
+                    <li>
+                      <strong>Gerente:</strong> Acesso a lançamentos e biblioteca, não pode excluir
+                      dados críticos ou usuários.
+                    </li>
+                    <li>
+                      <strong>Usuário:</strong> Acesso restrito aos próprios registros e leitura de
+                      dados gerais.
+                    </li>
+                  </ul>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <p className="text-muted-foreground text-[16px]">
             Gerencie o acesso da sua equipe ao painel
           </p>

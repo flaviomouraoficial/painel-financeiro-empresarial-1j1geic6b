@@ -6,6 +6,7 @@ import {
   updateLivro,
   deleteLivro,
   getLivroFileUrl,
+  searchLivros,
   Livro,
 } from '@/services/livros'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
@@ -34,8 +35,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Search, Plus, Book, Trash2, Edit, Loader2, WifiOff, FileText } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
+import { Search, Plus, Book, Trash2, Edit, Loader2, WifiOff, FileText, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const CACHE_KEY = 'biblioteca_livros_cache'
@@ -46,6 +47,31 @@ interface SyncItem {
   id: string
   action: SyncAction
   payload?: any
+}
+
+const COMMON_TAGS = [
+  'finanças',
+  'vendas',
+  'marketing',
+  'gestão',
+  'liderança',
+  'investimentos',
+  'contabilidade',
+  'tecnologia',
+  'planejamento',
+  'estratégia',
+  'economia',
+  'rh',
+  'operações',
+  'produtividade',
+  'inovação',
+  'startup',
+]
+
+const getSuggestedTags = (title: string, desc: string, currentTags: string) => {
+  const text = `${title} ${desc}`.toLowerCase()
+  const existingTags = currentTags.split(',').map((t) => t.trim().toLowerCase())
+  return COMMON_TAGS.filter((tag) => text.includes(tag) && !existingTags.includes(tag))
 }
 
 const getCache = (empresaId?: string): Livro[] | null => {
@@ -98,6 +124,9 @@ export default function Biblioteca() {
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const [selectedLivro, setSelectedLivro] = useState<Livro | null>(null)
 
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false)
+  const [selectedPdfUrl, setSelectedPdfUrl] = useState('')
+
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncQueueLength, setSyncQueueLength] = useState(() =>
@@ -130,7 +159,12 @@ export default function Biblioteca() {
     async (currentSearch: string) => {
       if (!user?.empresa_id) return
       try {
-        const data = await getLivros(currentSearch)
+        let data: Livro[] = []
+        if (currentSearch && isOnline) {
+          data = await searchLivros(currentSearch)
+        } else {
+          data = await getLivros(currentSearch)
+        }
         const queue = getQueue(user.empresa_id)
         setLivros(applyQueueToLivros(data, queue))
         if (!currentSearch) setCache(user.empresa_id, data)
@@ -154,7 +188,7 @@ export default function Biblioteca() {
         setLoading(false)
       }
     },
-    [user?.empresa_id],
+    [user?.empresa_id, isOnline],
   )
 
   const processQueue = useCallback(async () => {
@@ -186,7 +220,7 @@ export default function Biblioteca() {
   useEffect(() => {
     const timer = setTimeout(() => {
       loadData(search)
-    }, 300)
+    }, 400)
     return () => clearTimeout(timer)
   }, [search, loadData])
 
@@ -214,6 +248,14 @@ export default function Biblioteca() {
     setRemoveFile(false)
     setErrors({})
     setIsDialogOpen(true)
+  }
+
+  const openPdfViewer = (livro: Livro) => {
+    const url = getLivroFileUrl(livro)
+    if (url) {
+      setSelectedPdfUrl(url)
+      setPdfViewerOpen(true)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -264,7 +306,7 @@ export default function Biblioteca() {
         setQueue(user.empresa_id, queue)
         setSyncQueueLength(queue.length)
         toast({ title: 'Offline', description: 'Operação salva na fila local.' })
-        loadData(search) // Apply queue optimism
+        loadData(search)
       }
       setIsDialogOpen(false)
     } catch (error) {
@@ -302,6 +344,12 @@ export default function Biblioteca() {
     }
   }
 
+  const suggestedTags = getSuggestedTags(
+    formData.titulo,
+    formData.descricao,
+    formData.palavras_chave,
+  )
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -310,27 +358,43 @@ export default function Biblioteca() {
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Book className="h-8 w-8 text-primary" /> Biblioteca
             </h1>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={cn(
-                    'h-3 w-3 rounded-full mt-1.5 cursor-help',
-                    isOnline
-                      ? syncQueueLength > 0
-                        ? 'bg-amber-500 animate-pulse'
-                        : 'bg-green-500'
-                      : 'bg-gray-400',
-                  )}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                {isOnline
-                  ? syncQueueLength > 0
-                    ? 'Sincronizando...'
-                    : 'Sincronizado'
-                  : 'Aguardando conexão (Offline)'}
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      'h-3 w-3 rounded-full mt-1.5 cursor-help',
+                      isOnline
+                        ? syncQueueLength > 0
+                          ? 'bg-amber-500 animate-pulse'
+                          : 'bg-green-500'
+                        : 'bg-gray-400',
+                    )}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isOnline
+                    ? syncQueueLength > 0
+                      ? 'Sincronizando...'
+                      : 'Sincronizado'
+                    : 'Aguardando conexão (Offline)'}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full mt-1">
+                    <Info className="h-5 w-5 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  A pesquisa de biblioteca utiliza inteligência artificial para encontrar resultados
+                  pelo contexto e significado, não apenas por palavras exatas.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-3 mt-1">
             <p className="text-muted-foreground">Gerencie livros e materiais de referência.</p>
@@ -352,7 +416,7 @@ export default function Biblioteca() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Pesquisar por título, autor ou palavra-chave..."
+          placeholder="Pesquise por contexto, título, autor ou palavra-chave..."
           className="pl-9 bg-background shadow-sm"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -409,12 +473,10 @@ export default function Biblioteca() {
                   <Button
                     variant="outline"
                     size="sm"
-                    asChild
+                    onClick={() => openPdfViewer(livro)}
                     className="w-full mt-auto bg-primary/5 hover:bg-primary/10 border-primary/20"
                   >
-                    <a href={getLivroFileUrl(livro)} target="_blank" rel="noopener noreferrer">
-                      <FileText className="h-4 w-4 mr-2 text-primary" /> Visualizar Arquivo
-                    </a>
+                    <FileText className="h-4 w-4 mr-2 text-primary" /> Visualizar Arquivo
                   </Button>
                 )}
               </CardContent>
@@ -468,6 +530,49 @@ export default function Biblioteca() {
               {errors.autor && <p className="text-sm text-destructive">{errors.autor}</p>}
             </div>
             <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                rows={4}
+              />
+              {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="palavras_chave">Palavras-chave</Label>
+              <Input
+                id="palavras_chave"
+                value={formData.palavras_chave}
+                onChange={(e) => setFormData({ ...formData, palavras_chave: e.target.value })}
+                placeholder="Separadas por vírgula"
+              />
+              {errors.palavras_chave && (
+                <p className="text-sm text-destructive">{errors.palavras_chave}</p>
+              )}
+              {suggestedTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <span className="text-xs text-muted-foreground w-full">Sugestões:</span>
+                  {suggestedTags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      onClick={() => {
+                        const current = formData.palavras_chave.trim()
+                        setFormData({
+                          ...formData,
+                          palavras_chave: current ? `${current}, ${tag}` : tag,
+                        })
+                      }}
+                    >
+                      + {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="arquivo">Arquivo (PDF/DOCX, máx 50MB)</Label>
               <Input
                 id="arquivo"
@@ -500,28 +605,6 @@ export default function Biblioteca() {
                   O arquivo atual será removido ao salvar.
                 </p>
               )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="palavras_chave">Palavras-chave</Label>
-              <Input
-                id="palavras_chave"
-                value={formData.palavras_chave}
-                onChange={(e) => setFormData({ ...formData, palavras_chave: e.target.value })}
-                placeholder="Separadas por vírgula"
-              />
-              {errors.palavras_chave && (
-                <p className="text-sm text-destructive">{errors.palavras_chave}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
-              <Textarea
-                id="descricao"
-                value={formData.descricao}
-                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                rows={4}
-              />
-              {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
             </div>
             <DialogFooter className="pt-4">
               <Button
@@ -559,6 +642,26 @@ export default function Biblioteca() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={pdfViewerOpen} onOpenChange={setPdfViewerOpen}>
+        <DialogContent className="sm:max-w-[800px] h-[80vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Visualizador de Documento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-muted/20 relative w-full h-full">
+            {selectedPdfUrl ? (
+              <iframe src={selectedPdfUrl} className="w-full h-full border-0" title="PDF Viewer" />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                Documento não encontrado
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
