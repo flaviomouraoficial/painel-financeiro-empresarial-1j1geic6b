@@ -58,9 +58,15 @@ export default function Index() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<DashboardData | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const loadData = useCallback(async () => {
     try {
+      const user = pb.authStore.record
+      if (!user) return
+
+      const empresaFilter = `empresa_id = "${user.empresa_id}"`
+
       const from = dateRange?.from
         ? format(dateRange.from, 'yyyy-MM-dd')
         : format(subDays(new Date(), 30), 'yyyy-MM-dd')
@@ -69,17 +75,19 @@ export default function Index() {
         : format(new Date(), 'yyyy-MM-dd')
 
       const [bancarias, lancamentos, receber, pagar] = await Promise.all([
-        pb.collection('contas_bancarias').getFullList(),
+        pb.collection('contas_bancarias').getFullList({
+          filter: empresaFilter,
+        }),
         pb.collection('lancamentos').getFullList({
-          filter: `data_lancamento >= '${from} 00:00:00' && data_lancamento <= '${to} 23:59:59'`,
+          filter: `${empresaFilter} && data_lancamento >= '${from} 00:00:00' && data_lancamento <= '${to} 23:59:59'`,
           expand: 'categoria_id',
           sort: '-data_lancamento',
         }),
         pb.collection('contas_receber').getFullList({
-          filter: `status = 'vencida'`,
+          filter: `${empresaFilter} && status = 'vencida'`,
         }),
         pb.collection('contas_pagar').getFullList({
-          filter: `status = 'vencida'`,
+          filter: `${empresaFilter} && status = 'vencida'`,
         }),
       ])
 
@@ -107,6 +115,7 @@ export default function Index() {
           total: pagar.reduce((acc, curr) => acc + (curr.valor_total || 0), 0),
         },
       })
+      setLastUpdated(new Date())
       setError(null)
     } catch (err: any) {
       console.error(err)
@@ -220,11 +229,19 @@ export default function Index() {
     <div className="flex flex-col gap-4 p-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-gray-900">
-            Visão Geral Financeira
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[24px] font-bold tracking-tight text-gray-900">
+              Visão Geral Financeira
+            </h1>
+            {loading && <RefreshCcw className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
           <p className="text-[16px] text-muted-foreground">
             Monitore a saúde financeira da sua empresa em tempo real.
+            {lastUpdated && (
+              <span className="ml-2 text-[12px] text-gray-400">
+                (Atualizado às {format(lastUpdated, 'HH:mm:ss')})
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

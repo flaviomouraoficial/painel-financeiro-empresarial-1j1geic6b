@@ -28,6 +28,8 @@ import { Download, AlertCircle, FileX2, TrendingUp, TrendingDown } from 'lucide-
 import { format, startOfMonth, endOfMonth, addDays } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { PeriodSelector } from '@/components/ui/period-selector'
+import { useRealtime } from '@/hooks/use-realtime'
+import { RefreshCcw } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -45,6 +47,7 @@ export default function RelatoriosFluxoCaixa() {
     to: endOfMonth(new Date()),
   })
   const [tipoRelatorio, setTipoRelatorio] = useState('ambos')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchFluxoCaixa = async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -200,6 +203,7 @@ export default function RelatoriosFluxoCaixa() {
         chartData,
         projectionData,
       })
+      setLastUpdated(new Date())
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados.')
     } finally {
@@ -246,15 +250,38 @@ export default function RelatoriosFluxoCaixa() {
 
   useEffect(() => {
     fetchFluxoCaixa()
-  }, [dateRange])
+  }, [dateRange, tipoRelatorio])
+
+  useRealtime(
+    'lancamentos',
+    () => {
+      fetchFluxoCaixa()
+    },
+    !loading,
+  )
+  useRealtime(
+    'contas_bancarias',
+    () => {
+      fetchFluxoCaixa()
+    },
+    !loading,
+  )
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
+            {loading && <RefreshCcw className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
           <p className="text-muted-foreground text-sm">
             Projetado x Realizado das movimentações financeiras
+            {lastUpdated && (
+              <span className="ml-2 text-xs text-gray-400">
+                (Atualizado às {format(lastUpdated, 'HH:mm:ss')})
+              </span>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">

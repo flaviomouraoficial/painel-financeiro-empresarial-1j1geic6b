@@ -19,6 +19,8 @@ import { Download, AlertCircle, FileX2, ArrowUp, ArrowDown } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { DateRange } from 'react-day-picker'
 import { PeriodSelector } from '@/components/ui/period-selector'
+import { useRealtime } from '@/hooks/use-realtime'
+import { RefreshCcw } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -36,6 +38,7 @@ export default function RelatoriosPlanejadoRealizado() {
     to: endOfMonth(new Date()),
   })
   const [agrupamento, setAgrupamento] = useState('projeto')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchPlanejadoRealizado = async () => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -185,6 +188,7 @@ export default function RelatoriosPlanejadoRealizado() {
             ? ((totalRealizado - totalPlanejado) / Math.abs(totalPlanejado)) * 100
             : 0,
       })
+      setLastUpdated(new Date())
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados.')
     } finally {
@@ -221,15 +225,48 @@ export default function RelatoriosPlanejadoRealizado() {
 
   useEffect(() => {
     fetchPlanejadoRealizado()
-  }, [dateRange])
+  }, [dateRange, agrupamento])
+
+  useRealtime(
+    'lancamentos',
+    () => {
+      fetchPlanejadoRealizado()
+    },
+    !loading,
+  )
+  useRealtime(
+    'contas_receber',
+    () => {
+      fetchPlanejadoRealizado()
+    },
+    !loading,
+  )
+  useRealtime(
+    'contas_pagar',
+    () => {
+      fetchPlanejadoRealizado()
+    },
+    !loading,
+  )
+
   const isCategoria = agrupamento === 'categoria'
 
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Planejado x Realizado</h1>
-          <p className="text-muted-foreground text-sm">Comparativo de metas e orçamentos reais</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Planejado x Realizado</h1>
+            {loading && <RefreshCcw className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Comparativo de metas e orçamentos reais
+            {lastUpdated && (
+              <span className="ml-2 text-xs text-gray-400">
+                (Atualizado às {format(lastUpdated, 'HH:mm:ss')})
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <PeriodSelector
