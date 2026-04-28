@@ -60,6 +60,8 @@ routerAdd(
       if (contaPagar.getString('centro_custo_id'))
         lancamento.set('centro_custo_id', contaPagar.getString('centro_custo_id'))
 
+      lancamento.set('conta_pagar_id', id)
+
       lancamento.set(
         'descricao',
         `Pagamento: ${contaPagar.getString('descricao') || contaPagar.getString('numero_nf') || 'Conta a Pagar'}`,

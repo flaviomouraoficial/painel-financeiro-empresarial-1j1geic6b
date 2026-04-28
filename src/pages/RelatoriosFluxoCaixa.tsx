@@ -77,10 +77,18 @@ export default function RelatoriosFluxoCaixa() {
         .getFullList({ filter: `empresa_id = "${user.empresa_id}"` })
       const saldoInicialContas = contas.reduce((acc, c) => acc + (c.saldo_inicial || 0), 0)
 
-      const lancamentos = await pb.collection('lancamentos').getFullList({
-        filter: `empresa_id = "${user.empresa_id}" && data_lancamento <= "${dataFim} 23:59:59"`,
-        sort: 'data_lancamento',
-      })
+      const [lancamentos, contasPagar, contasReceber] = await Promise.all([
+        pb.collection('lancamentos').getFullList({
+          filter: `empresa_id = "${user.empresa_id}" && data_lancamento <= "${dataFim} 23:59:59"`,
+          sort: 'data_lancamento',
+        }),
+        pb.collection('contas_pagar').getFullList({
+          filter: `empresa_id = "${user.empresa_id}" && data_vencimento >= "${dataInicio} 00:00:00" && data_vencimento <= "${dataFim} 23:59:59"`,
+        }),
+        pb.collection('contas_receber').getFullList({
+          filter: `empresa_id = "${user.empresa_id}" && data_vencimento >= "${dataInicio} 00:00:00" && data_vencimento <= "${dataFim} 23:59:59"`,
+        }),
+      ])
 
       const pastLancamentos = lancamentos.filter(
         (l) => l.data_lancamento < dataInicio && l.status === 'confirmado',
@@ -97,7 +105,11 @@ export default function RelatoriosFluxoCaixa() {
         (l) => l.data_lancamento >= dataInicio && l.data_lancamento <= dataFim,
       )
 
-      if (periodLancamentos.length === 0) {
+      if (
+        periodLancamentos.length === 0 &&
+        contasPagar.length === 0 &&
+        contasReceber.length === 0
+      ) {
         setData({ empty: true })
         setLoading(false)
         return
@@ -126,32 +138,56 @@ export default function RelatoriosFluxoCaixa() {
         d = addDays(d, 1)
       }
 
+      // Realized and standalone pending from Lancamentos
       periodLancamentos.forEach((l) => {
         const dateStr = l.data_lancamento.substring(0, 10)
         if (!dailyData[dateStr]) return
 
         const isConfirmado = l.status === 'confirmado'
         const isPendente = l.status === 'pendente'
+        const isLinked = l.conta_pagar_id || l.conta_receber_id
 
         if (l.tipo === 'receita') {
-          if (isConfirmado || isPendente) {
-            projetadoEntradas += l.valor
-            dailyData[dateStr].inProjetado += l.valor
-          }
           if (isConfirmado) {
             realizadoEntradas += l.valor
             dailyData[dateStr].inRealizado += l.valor
+            projetadoEntradas += l.valor
+            dailyData[dateStr].inProjetado += l.valor
+          } else if (isPendente && !isLinked) {
+            projetadoEntradas += l.valor
+            dailyData[dateStr].inProjetado += l.valor
           }
         } else {
-          if (isConfirmado || isPendente) {
-            projetadoSaidas += l.valor
-            dailyData[dateStr].outProjetado += l.valor
-          }
           if (isConfirmado) {
             realizadoSaidas += l.valor
             dailyData[dateStr].outRealizado += l.valor
+            projetadoSaidas += l.valor
+            dailyData[dateStr].outProjetado += l.valor
+          } else if (isPendente && !isLinked) {
+            projetadoSaidas += l.valor
+            dailyData[dateStr].outProjetado += l.valor
           }
         }
+      })
+
+      // Projected from Contas a Receber
+      contasReceber.forEach((c) => {
+        if (c.status === 'cancelada' || c.status === 'recebida') return
+        const dateStr = c.data_vencimento.substring(0, 10)
+        if (!dailyData[dateStr]) return
+
+        projetadoEntradas += c.valor_total
+        dailyData[dateStr].inProjetado += c.valor_total
+      })
+
+      // Projected from Contas a Pagar
+      contasPagar.forEach((c) => {
+        if (c.status === 'cancelada' || c.status === 'paga') return
+        const dateStr = c.data_vencimento.substring(0, 10)
+        if (!dailyData[dateStr]) return
+
+        projetadoSaidas += c.valor_total
+        dailyData[dateStr].outProjetado += c.valor_total
       })
 
       const chartData = Object.keys(dailyData)
@@ -269,6 +305,20 @@ export default function RelatoriosFluxoCaixa() {
     },
     !loading,
   )
+  useRealtime(
+    'contas_pagar',
+    () => {
+      fetchFluxoCaixa()
+    },
+    !loading,
+  )
+  useRealtime(
+    'contas_receber',
+    () => {
+      fetchFluxoCaixa()
+    },
+    !loading,
+  )
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -350,8 +400,8 @@ export default function RelatoriosFluxoCaixa() {
           </p>
           <Button
             onClick={() => {
-              setPeriodoPreset('mes_atual')
-              setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })
+              setPeriodoPreset('ano_atual')
+              setDateRange({ from: new Date(2026, 0, 1), to: new Date(2026, 11, 31, 23, 59, 59) })
             }}
             variant="outline"
             className="mt-4"

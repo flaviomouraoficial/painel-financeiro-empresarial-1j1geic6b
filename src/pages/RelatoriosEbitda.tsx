@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PeriodSelector } from '@/components/ui/period-selector'
 import { useReportFilters } from '@/hooks/use-report-filters'
+import { useRealtime } from '@/hooks/use-realtime'
 import { formatCurrency } from '@/lib/format'
 import { BarChart, Bar, XAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
@@ -70,7 +71,12 @@ export default function RelatoriosEbitda() {
           } else if (
             !catName.includes('imposto') &&
             !catName.includes('juro') &&
-            !catName.includes('taxa')
+            !catName.includes('taxa') &&
+            !catName.includes('deprecia') &&
+            !catName.includes('amortiza') &&
+            !catName.includes('tributo') &&
+            !catName.includes('das') &&
+            !catName.includes('irpj')
           ) {
             despesasOperacionais += l.valor
           }
@@ -102,7 +108,12 @@ export default function RelatoriosEbitda() {
             if (
               !catName.includes('imposto') &&
               !catName.includes('juro') &&
-              !catName.includes('taxa')
+              !catName.includes('taxa') &&
+              !catName.includes('deprecia') &&
+              !catName.includes('amortiza') &&
+              !catName.includes('tributo') &&
+              !catName.includes('das') &&
+              !catName.includes('irpj')
             ) {
               chartMap[m].despesa += l.valor
             }
@@ -257,7 +268,15 @@ export default function RelatoriosEbitda() {
 
   useEffect(() => {
     fetchEbitda()
-  }, [])
+  }, [dataInicioStr, dataFimStr])
+
+  useRealtime(
+    'lancamentos',
+    () => {
+      fetchEbitda()
+    },
+    !loading,
+  )
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -320,9 +339,8 @@ export default function RelatoriosEbitda() {
           </p>
           <Button
             onClick={() => {
-              setPreset('mes_atual')
-              const today = new Date()
-              setDateRange({ from: startOfMonth(today), to: endOfMonth(today) })
+              setPreset('ano_atual')
+              setDateRange({ from: new Date(2026, 0, 1), to: new Date(2026, 11, 31, 23, 59, 59) })
             }}
             variant="outline"
             className="mt-4"

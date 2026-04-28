@@ -73,7 +73,7 @@ export default function RelatoriosPlanejadoRealizado() {
           expand: 'projeto_id,centro_custo_id',
         }),
         pb.collection('lancamentos').getFullList({
-          filter: `empresa_id = "${user.empresa_id}" && status = "confirmado" && data_lancamento >= "${dataInicio} 00:00:00" && data_lancamento <= "${dataFim} 23:59:59"`,
+          filter: `empresa_id = "${user.empresa_id}" && status = "confirmado" && ((data_competencia != "" && data_competencia >= "${dataInicio} 00:00:00" && data_competencia <= "${dataFim} 23:59:59") || (data_competencia = "" && data_lancamento >= "${dataInicio} 00:00:00" && data_lancamento <= "${dataFim} 23:59:59"))`,
           expand: 'projeto_id,centro_custo_id,categoria_id',
         }),
       ])
@@ -338,8 +338,8 @@ export default function RelatoriosPlanejadoRealizado() {
           </p>
           <Button
             onClick={() => {
-              setPeriodoPreset('mes_atual')
-              setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })
+              setPeriodoPreset('ano_atual')
+              setDateRange({ from: new Date(2026, 0, 1), to: new Date(2026, 11, 31, 23, 59, 59) })
             }}
             variant="outline"
             className="mt-4"

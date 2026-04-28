@@ -12,15 +12,17 @@ export function useReportFilters() {
         to: parseISO(savedEnd),
       }
     }
+    const now = new Date()
+    const year = now.getFullYear() === 2026 ? 2026 : 2026
     return {
-      from: startOfMonth(new Date()),
-      to: endOfMonth(new Date()),
+      from: new Date(year, 0, 1),
+      to: new Date(year, 11, 31, 23, 59, 59),
     }
   }
 
   const [dateRange, setDateRangeState] = useState<DateRange | undefined>(getInitialDates)
   const [preset, setPresetState] = useState<string>(
-    () => sessionStorage.getItem('report_period_preset') || 'mes_atual',
+    () => sessionStorage.getItem('report_period_preset') || 'ano_atual',
   )
 
   const setDateRange = (range: DateRange | undefined) => {

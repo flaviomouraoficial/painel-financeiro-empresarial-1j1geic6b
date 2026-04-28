@@ -20,6 +20,7 @@ import { formatCurrency } from '@/lib/format'
 import pb from '@/lib/pocketbase/client'
 import { useReportFilters } from '@/hooks/use-report-filters'
 import { PeriodSelector } from '@/components/ui/period-selector'
+import { useRealtime } from '@/hooks/use-realtime'
 import {
   PieChart,
   Pie,
@@ -71,7 +72,11 @@ export default function RelatoriosDre() {
     if (dataInicio && dataFim && !hasFetched) {
       gerarRelatorio()
     }
-  }, [])
+  }, [dataInicio, dataFim, hasFetched])
+
+  useRealtime('lancamentos', () => {
+    if (hasFetched) gerarRelatorio()
+  })
 
   let receitasBrutas = 0,
     deducoes = 0,
